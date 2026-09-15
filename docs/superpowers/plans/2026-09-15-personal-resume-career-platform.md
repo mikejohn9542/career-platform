@@ -4,9 +4,9 @@
 
 **Goal:** Build a public, recruiter-focused portfolio with database-backed content, a validated deployment snapshot fallback, dedicated project pages, and a downloadable resume.
 
-**Architecture:** Use a Next.js App Router application with TypeScript, Drizzle ORM, PostgreSQL, and Zod. Version-controlled TypeScript content is validated and compiled into a deployment snapshot; deployment seeds the same content into PostgreSQL, while public server components read PostgreSQL first and fall back to the snapshot on database failure.
+**Architecture:** Use a Next.js App Router application with TypeScript, Drizzle ORM, SQLite, and Zod. Version-controlled TypeScript content is validated and compiled into a deployment snapshot; deployment seeds the same content into SQLite, while public server components read SQLite first and fall back to the snapshot on database failure. Deploy the container with Docker Compose to an Azure VM.
 
-**Tech Stack:** Next.js, React, TypeScript, PostgreSQL, Drizzle ORM, Zod, Vitest, Testing Library, Playwright, GitHub Actions, and a serverless PostgreSQL provider such as Neon.
+**Tech Stack:** Next.js, React, TypeScript, SQLite, Drizzle ORM, Zod, Vitest, Testing Library, Playwright, GitHub Actions, Docker Compose, Azure VM, and Caddy.
 
 **Spec:** `docs/superpowers/specs/2026-09-15-personal-resume-career-platform-design.md`
 
@@ -14,7 +14,7 @@
 
 - The first release supports one professional profile only; do not expose multi-profile behavior.
 - Content is authored through reviewed repository changes; do not add a web CMS, user accounts, or authentication.
-- PostgreSQL is the runtime source of truth when available, with a validated snapshot fallback that keeps the core profile visible during a PostgreSQL outage.
+- SQLite is the runtime source of truth when available, with a validated snapshot fallback that keeps the core profile visible during a SQLite outage.
 - The public route model is a recruiter-oriented landing page, dedicated project detail pages, and a resume view/download path.
 - The visual direction is technical-modern, with semantic markup, keyboard access, responsive layouts, sufficient contrast, and meaningful metadata.
 - Contact is an external booking/contact link; do not store contact messages.
@@ -33,7 +33,7 @@ Create these focused units:
 - `src/content/profile.ts`: repository-authored profile content.
 - `src/content/load.ts`: content parsing, validation, and snapshot generation.
 - `src/generated/profile-snapshot.json`: generated fallback artifact; never hand-edit.
-- `src/db/schema.ts`, `src/db/client.ts`, and `src/db/repository.ts`: database schema, connection, and typed reads.
+- `src/db/schema.ts`, `src/db/client.ts`, and `src/db/repository.ts`: SQLite schema, connection, and typed reads.
 - `drizzle.config.ts`, `drizzle/`: migrations and seed support.
 - `scripts/validate-content.ts`, `scripts/generate-snapshot.ts`, and `scripts/seed.ts`: repeatable content/deployment commands.
 - `src/lib/content-service.ts`: database-first reads with snapshot fallback and observable fallback logging.
@@ -165,7 +165,7 @@ git add src/content src/generated/.gitkeep scripts package.json .gitignore tests
 git commit -m "feat: add validated portfolio content model"
 ```
 
-## Task 3: Add PostgreSQL schema, migrations, and seed import
+## Task 3: Add SQLite schema, migrations, and seed import
 
 **Files:**
 - Create: `src/db/schema.ts`
@@ -176,11 +176,12 @@ git commit -m "feat: add validated portfolio content model"
 - Create: `tests/integration/helpers.ts`
 - Create: `tests/integration/repository.test.ts`
 - Create: `.env.example`
+- Create: `docker-compose.yml`
 - Modify: `package.json`
 - Modify: `README.md`
 
 **Interfaces:**
-- `createDbClient(connectionString: string): DbClient`
+- `createDbClient(databasePath: string): DbClient`
 - `seedProfile(db: DbClient, content: ProfileContent): Promise<void>`
 - `getPublishedProfile(db: DbClient): Promise<ProfileContent | null>`
 - `getPublishedProject(db: DbClient, slug: string): Promise<ProjectContent | null>`
@@ -224,9 +225,9 @@ Run: `npx drizzle-kit generate`
 Expected: A migration is created under `drizzle/` from the schema.
 
 Run: `npm run db:migrate`
-Expected: The migration applies using `DATABASE_URL`.
+Expected: The migration applies using the configured SQLite file path.
 
-- [ ] **Step 6: Run the repository tests against an isolated PostgreSQL database**
+- [ ] **Step 6: Run the repository tests against an isolated SQLite database**
 
 Run: `npm test -- --run tests/integration/repository.test.ts`
 Expected: PASS with published filtering, stable upserts, and relationship reads covered.
@@ -361,7 +362,7 @@ git add src/app src/components tests/e2e
 git commit -m "feat: add recruiter-facing portfolio pages"
 ```
 
-## Task 6: Add assets, SEO, analytics boundary, and deployment checks
+## Task 6: Add assets, SEO, analytics boundary, and Azure VM deployment checks
 
 **Files:**
 - Create: `src/lib/assets.ts`
@@ -372,6 +373,9 @@ git commit -m "feat: add recruiter-facing portfolio pages"
 - Create: `public/resume.pdf`
 - Create: `public/images/README.md`
 - Create: `.github/workflows/ci.yml`
+- Create: `Dockerfile`
+- Create: `Caddyfile`
+- Create: `scripts/backup-sqlite.ts`
 - Modify: `scripts/generate-snapshot.ts`
 - Modify: `package.json`
 - Modify: `README.md`
@@ -409,11 +413,11 @@ Add the real resume PDF supplied for the profile, document image sizing/naming/a
 
 - [ ] **Step 5: Add CI**
 
-Configure GitHub Actions to install from the lockfile, run content validation, generate the snapshot, run type checks, lint, unit/integration tests, and production build. Require `DATABASE_URL` only for integration steps and use repository secrets or a disposable test database; never commit credentials.
+Configure GitHub Actions to install from the lockfile, run content validation, generate the snapshot, run type checks, lint, unit/integration tests, and production build. Build a Docker image and document deployment to an Azure VM through Docker Compose. Persist SQLite outside the container, configure Caddy for the custom domain and automated HTTPS, and schedule local SQLite copies with retention. Never commit credentials or TLS material.
 
 - [ ] **Step 6: Run the complete validation**
 
-Run: `npm run content:validate && npm test && npm run build`
+Run: `npm run content:validate && npm test && npm run build && docker compose config`
 Expected: PASS locally with no committed generated snapshot and no provider-specific analytics requirement.
 
 - [ ] **Step 7: Commit**
@@ -430,6 +434,6 @@ git commit -m "chore: add assets metadata and ci checks"
 - [ ] Run `npm test`.
 - [ ] Run `npm run test:e2e`.
 - [ ] Run `npm run build`.
-- [ ] Verify a database outage test serves the generated snapshot and logs an operator-visible warning.
+- [ ] Verify a SQLite outage test serves the generated snapshot and logs an operator-visible warning.
 - [ ] Verify the public profile, resume, and project pages remain usable with JavaScript disabled where the framework supports it.
 - [ ] Verify `git status --short` contains only intentional changes before handoff.

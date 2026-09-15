@@ -41,7 +41,8 @@ complexity.
 ## Recommended architecture
 
 Use a TypeScript full-stack application with a modern full-stack framework,
-deployed through a GitHub-centric workflow and backed by serverless PostgreSQL.
+deployed through a GitHub-centric workflow to an Azure VM and backed by SQLite
+on persistent VM storage.
 The exact framework and provider should be selected during implementation based
 on current repository conventions, ecosystem support, preview deployments, and
 the lowest reliable operational burden.
@@ -55,14 +56,13 @@ shareability. The initial route model is hybrid:
 - A dedicated resume view/download path.
 
 Structured content will be authored in version-controlled files and imported
-or seeded into PostgreSQL during deployment. PostgreSQL is the runtime source
-of truth after import. This preserves code review, rollback, and a
-repo-driven workflow while establishing durable relational data boundaries for
-future growth.
+or seeded into SQLite during deployment. SQLite is the runtime source of truth
+after import. This preserves code review, rollback, and a repo-driven workflow
+while establishing durable relational data boundaries for future growth.
 
 The deployment must also generate a validated, versioned content snapshot from
-the same repository-authored inputs. Public profile pages should read from
-PostgreSQL when it is available, but fall back to this snapshot when the
+the same repository-authored inputs. Public profile pages should read from SQLite when it is available, but fall
+back to this snapshot when the
 database is unavailable. The fallback must contain enough published profile,
 resume, skills, and project-summary data to keep the core portfolio visible;
 it must not require a live database connection.
@@ -138,7 +138,7 @@ release.
 
 ## Deployment and content workflow
 
-The deployment workflow should be GitHub-centric:
+The deployment workflow should be GitHub-centric and target an Azure VM:
 
 1. Content and code changes are proposed through version control.
 2. Pull requests run validation and produce a preview when supported.
@@ -146,6 +146,10 @@ The deployment workflow should be GitHub-centric:
 4. A production build runs only after type checks, tests, and content/schema
    validation pass.
 5. Deployment applies the required database migration/import steps explicitly.
+6. Docker Compose runs the application with SQLite on a persistent volume.
+7. A reverse proxy such as Caddy provides the custom domain and automated HTTPS.
+8. A scheduled local SQLite copy is retained on the VM as the initial backup
+   strategy.
 
 There is no web admin surface in version one. Updating a project or profile
 section means changing the versioned content, reviewing the diff, and
@@ -164,7 +168,7 @@ The application must handle these conditions explicitly:
 
 Public pages should not silently present invalid or partial content as
 successful. Build-time content errors should fail the deployment with an
-actionable message. If PostgreSQL is unavailable, the application should serve
+actionable message. If SQLite is unavailable, the application should serve
 the last validated snapshot and expose an observable warning to operators
 without showing an outage state to visitors. If neither the database nor a
 validated snapshot is available, runtime infrastructure failures should use a
@@ -176,7 +180,7 @@ framework.
 The first release is complete when:
 
 - A recruiter can understand the profile and find selected projects quickly.
-- The core published profile remains visible during a PostgreSQL outage by
+- The core published profile remains visible during a SQLite outage by
   using the validated deployment snapshot.
 - The resume can be viewed and downloaded reliably.
 - Project detail pages expose meaningful evidence and links.
