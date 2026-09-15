@@ -60,6 +60,13 @@ of truth after import. This preserves code review, rollback, and a
 repo-driven workflow while establishing durable relational data boundaries for
 future growth.
 
+The deployment must also generate a validated, versioned content snapshot from
+the same repository-authored inputs. Public profile pages should read from
+PostgreSQL when it is available, but fall back to this snapshot when the
+database is unavailable. The fallback must contain enough published profile,
+resume, skills, and project-summary data to keep the core portfolio visible;
+it must not require a live database connection.
+
 ## Content and data model
 
 The initial domain model should support one professional profile and related
@@ -157,14 +164,20 @@ The application must handle these conditions explicitly:
 
 Public pages should not silently present invalid or partial content as
 successful. Build-time content errors should fail the deployment with an
-actionable message. Runtime infrastructure failures should use a deliberate
-error state and appropriate logging consistent with the selected framework.
+actionable message. If PostgreSQL is unavailable, the application should serve
+the last validated snapshot and expose an observable warning to operators
+without showing an outage state to visitors. If neither the database nor a
+validated snapshot is available, runtime infrastructure failures should use a
+deliberate error state and appropriate logging consistent with the selected
+framework.
 
 ## Quality gates
 
 The first release is complete when:
 
 - A recruiter can understand the profile and find selected projects quickly.
+- The core published profile remains visible during a PostgreSQL outage by
+  using the validated deployment snapshot.
 - The resume can be viewed and downloaded reliably.
 - Project detail pages expose meaningful evidence and links.
 - Content can be updated through reviewed repository changes without schema
@@ -181,8 +194,9 @@ future features prematurely:
 
 - Database access behind typed repository/service functions.
 - Content import and validation independent from page rendering.
+- Snapshot generation and fallback reads independent from the live database
+  connection.
 - Asset references independent from asset storage implementation.
 - Optional analytics instrumentation independent from vendor code.
 - Profile/content entities modeled so multiple profiles could be added later,
   without exposing multi-profile behavior in version one.
-
