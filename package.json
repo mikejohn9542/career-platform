@@ -8,12 +8,15 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "content:validate": "tsx scripts/validate-content.ts",
+    "content:snapshot": "tsx scripts/generate-snapshot.ts"
   },
   "dependencies": {
     "next": "15.3.5",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@playwright/test": "1.51.1",
@@ -22,6 +25,7 @@
     "@types/react-dom": "19.1.0",
     "eslint": "8.57.0",
     "eslint-config-next": "15.3.5",
+    "tsx": "^4.20.4",
     "typescript": "5.5.4",
     "vitest": "2.1.8"
   }
