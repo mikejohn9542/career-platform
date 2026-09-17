@@ -97,3 +97,4 @@ export const profileContentSchema = z.object({
 });
 
 export type ProfileContent = z.infer<typeof profileContentSchema>;
+export type ProjectContent = z.infer<typeof projectSchema>;

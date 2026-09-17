@@ -21,6 +21,7 @@ coverage/
 .env
 .env.local
 .env.*.local
+data/
 
 # OS files
 .DS_Store

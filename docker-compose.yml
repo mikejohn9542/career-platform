@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    environment:
+      DATABASE_PATH: /data/career-platform.sqlite
+    volumes:
+      - career-platform-data:/data
+
+volumes:
+  career-platform-data:
