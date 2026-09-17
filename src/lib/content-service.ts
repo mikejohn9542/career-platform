@@ -1,6 +1,9 @@
 import fs from "node:fs";
+import path from "node:path";
 import { profileContentSchema, type ProfileContent, type ProjectContent } from "@/content/schema";
 import { getGeneratedSnapshotPath } from "@/content/load";
+import { createDbClient, migrateDb } from "@/db/client";
+import { getPublishedProfile, getPublishedProject } from "@/db/repository";
 import { createLogger, type Logger } from "./logger";
 
 export interface DatabaseContentProvider {
@@ -16,8 +19,8 @@ export interface ContentServiceOptions {
 
 const startupSnapshot = (() => {
   try {
-    const path = getGeneratedSnapshotPath();
-    const raw = fs.readFileSync(path, "utf8");
+    const resolvedPath = getGeneratedSnapshotPath();
+    const raw = fs.readFileSync(resolvedPath, "utf8");
     return profileContentSchema.parse(JSON.parse(raw));
   } catch {
     return null;
@@ -27,6 +30,27 @@ const startupSnapshot = (() => {
 function resolveSnapshot(snapshot: ProfileContent | null | undefined): ProfileContent | null {
   if (snapshot === undefined) return startupSnapshot;
   return snapshot;
+}
+
+function createDefaultDatabaseProvider(): DatabaseContentProvider | undefined {
+  const databasePath = process.env.CAREER_PLATFORM_DB_PATH ?? path.resolve(process.cwd(), "data/app.db");
+
+  try {
+    const client = createDbClient(databasePath);
+    void migrateDb(client);
+    return {
+      async getSiteContent(): Promise<ProfileContent | null> {
+        await migrateDb(client);
+        return getPublishedProfile(client);
+      },
+      async getProjectBySlug(slug: string): Promise<ProjectContent | null> {
+        await migrateDb(client);
+        return getPublishedProject(client, slug);
+      },
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 export function createContentService({
@@ -94,6 +118,7 @@ export function createContentService({
 }
 
 export const contentService = createContentService({
+  database: createDefaultDatabaseProvider(),
   snapshot: startupSnapshot ?? undefined,
   logger: createLogger(),
 });
