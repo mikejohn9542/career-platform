@@ -38,7 +38,7 @@ export function createContentService({
   getProjectBySlug(slug: string): Promise<{ project: ProjectContent | null; source: "database" | "snapshot" }>;
 } {
   const fallbackSnapshot = resolveSnapshot(snapshot);
-  const log = logger ?? { warn: () => undefined };
+  const log = logger ?? createLogger();
 
   if (!fallbackSnapshot && !database) {
     throw new Error("No valid content snapshot is available and no database provider is configured.");
