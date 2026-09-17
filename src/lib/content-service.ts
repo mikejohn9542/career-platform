@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { profileContentSchema, type ProfileContent, type ProjectContent } from "@/content/schema";
 import { getGeneratedSnapshotPath } from "@/content/load";
-import type { Logger } from "./logger";
+import { createLogger, type Logger } from "./logger";
 
 export interface DatabaseContentProvider {
   getSiteContent(): Promise<ProfileContent | null>;
@@ -94,5 +94,5 @@ export function createContentService({
 
 export const contentService = createContentService({
   snapshot: startupSnapshot ?? undefined,
-  logger: { warn: () => undefined },
+  logger: createLogger(),
 });
