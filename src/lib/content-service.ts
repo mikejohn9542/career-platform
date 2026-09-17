@@ -69,9 +69,10 @@ export function createContentService({
       if (database) {
         try {
           const project = await database.getProjectBySlug(slug);
-          if (project) {
+          if (project !== null) {
             return { project, source: "database" };
           }
+          return { project: null, source: "database" };
         } catch (error) {
           log.warn("content_service_fallback", {
             operation: "getProjectBySlug",

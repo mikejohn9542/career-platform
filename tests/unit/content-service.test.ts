@@ -55,7 +55,7 @@ describe("content service", () => {
     });
   });
 
-  it("returns null for an unknown project slug", async () => {
+  it("returns null for an unknown project slug without falling back", async () => {
     const content = makeFixtureContent();
     const service = createContentService({
       database: {
@@ -68,7 +68,7 @@ describe("content service", () => {
 
     await expect(service.getProjectBySlug("missing-project")).resolves.toEqual({
       project: null,
-      source: "snapshot",
+      source: "database",
     });
   });
 
