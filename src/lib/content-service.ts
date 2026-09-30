@@ -33,7 +33,7 @@ function resolveSnapshot(snapshot: ProfileContent | null | undefined): ProfileCo
 }
 
 function createDefaultDatabaseProvider(): DatabaseContentProvider | undefined {
-  const databasePath = process.env.CAREER_PLATFORM_DB_PATH ?? path.resolve(process.cwd(), "data/app.db");
+  const databasePath = path.resolve(process.cwd(), process.env.DATABASE_PATH ?? "data/career-platform.sqlite");
 
   try {
     const client = createDbClient(databasePath);
