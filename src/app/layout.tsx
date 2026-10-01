@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Career Platform",
-  description: "Career portfolio scaffold for the personal resume platform.",
+  title: "Michael Johnson",
+  description: "Resume and projects of Michael Johnson.",
 };
 
 export default function RootLayout({
