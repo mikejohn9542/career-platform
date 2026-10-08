@@ -22,8 +22,10 @@ The app reads content from PostgreSQL via `DATABASE_URL`. Without it, pages rend
 - Apply migrations: `npm run db:migrate`
 - Replace the database content with `src/content/profile.ts`: `npm run db:seed` (idempotent)
 
-On Railway, `railway.json` runs `db:migrate` and `db:seed` before each release, and the web
-service's `DATABASE_URL` references the Postgres service.
+On Railway, `railway.json` runs `db:migrate` (never `db:seed`) before each release, and the web
+service's `DATABASE_URL` references the Postgres service. Production rows were moved once from the
+VM's SQLite backup with `npm run db:move-rows` (see the migration plan). `db:seed` is for local
+development only.
 
 ## Temporary scaffold
 
