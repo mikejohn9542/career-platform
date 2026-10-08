@@ -1367,7 +1367,7 @@ Expected: tsc and lint clean, 25 tests pass.
 
 Web service → **Variables**: add `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (pick the Postgres service's variable after typing `${{`). Remove `DATABASE_PATH` if present. **Settings → Networking → Generate Domain** if there's no `*.up.railway.app` address; share it as `APP` below.
 
-- [ ] **Step 2 (laptop, after the user's OK): merge and push**
+- [x] **Step 2 (laptop, after the user's OK): merge and push** — done, `3ec9e9c..3e09628`
 
 ```bash
 git checkout main && git merge --ff-only railway-postgres && git push origin main
@@ -1377,7 +1377,7 @@ git checkout main && git merge --ff-only railway-postgres && git push origin mai
 
 Expected in order: build (`Wrote profile snapshot`, route table with `ƒ Middleware`), pre-deploy `Migrations applied.` (and no seed output), healthcheck succeeded. Then `curl -s -o /dev/null -w "%{http_code}\n" https://APP/` → `200` (served from the snapshot; the runtime log shows `content_service_fallback` with `"reason":"empty"`).
 
-- [ ] **Step 4 (laptop, after the user's OK): move the rows**
+- [x] **Step 4 (laptop, after the user's OK): move the rows**
 
 ```bash
 DATABASE_URL="$(grep '^RAILWAY_DATABASE_URL=' .env | cut -d= -f2-)?sslmode=no-verify" npm run -s db:move-rows -- data/backups/career-platform-20261008T2154Z.sqlite
@@ -1386,6 +1386,12 @@ DATABASE_URL="$(grep '^RAILWAY_DATABASE_URL=' .env | cut -d= -f2-)?sslmode=no-ve
 `?sslmode=no-verify` encrypts the connection over the public proxy without checking Railway's self-signed certificate. Without it, node-postgres connects in plaintext, and `sslmode=require` alone is treated as `verify-full` by pg-connection-string 2.14 and rejects the certificate. Before the real run, confirm TLS with a read-only query: `select ssl from pg_stat_ssl where pid = pg_backend_pid()` must return `true`.
 
 Expected: a table with all 13 content tables `identical: true` and counts matching the backup section above, then `All tables match the backup.`
+
+- **Result (2026-10-08 ~22:25 UTC, user approved):**
+  - Pre-deploy migrations had **not** run: after the successful build, Railway Postgres (`zephyr.proxy.rlwy.net:32164`, TLSv1.3 confirmed via `pg_stat_ssl`) had 0 public tables for 10 minutes. Ran `npm run db:migrate` from the laptop over TLS → `Migrations applied.`
+  - `npm run db:move-rows -- data/backups/career-platform-20261008T2154Z.sqlite` (backup SHA-256 `5a094c62…`) → all 13 tables `identical: true`, `All tables match the backup.`
+  - Independent check, live VM database (`sqlite3 -json`, read-only) vs Railway (`pg`, read-only session), every column of every row: profiles 1/1, experiences 2/2, experience_highlights 8/8, education 1/1, skill_groups 3/3, skill_items 19/19, projects 2/2, project_technologies 10/10, project_highlights 5/5, project_links 2/2, project_media 0/0, resume_metadata 1/1, contacts 1/1; 268 cells compared, 0 different; per-table SHA-256 of the normalized rows identical on both sides.
+  - Open: why Railway's pre-deploy didn't run (config file not picked up, or the web service's `DATABASE_URL` points elsewhere) — to check in the dashboard.
 
 - [ ] **Step 5 (laptop): live checks**
 
