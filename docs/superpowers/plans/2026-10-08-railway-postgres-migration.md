@@ -1393,7 +1393,7 @@ Expected: a table with all 13 content tables `identical: true` and counts matchi
   - Independent check, live VM database (`sqlite3 -json`, read-only) vs Railway (`pg`, read-only session), every column of every row: profiles 1/1, experiences 2/2, experience_highlights 8/8, education 1/1, skill_groups 3/3, skill_items 19/19, projects 2/2, project_technologies 10/10, project_highlights 5/5, project_links 2/2, project_media 0/0, resume_metadata 1/1, contacts 1/1; 268 cells compared, 0 different; per-table SHA-256 of the normalized rows identical on both sides.
   - Open: why Railway's pre-deploy didn't run (config file not picked up, or the web service's `DATABASE_URL` points elsewhere) — to check in the dashboard.
 
-- [ ] **Step 5 (laptop): live checks**
+- [x] **Step 5 (laptop): live checks** (run from the VM; campus Wi-Fi blocks the domain)
 
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" https://APP/
@@ -1403,6 +1403,8 @@ curl -s -o /dev/null -w "%{http_code} %{content_type}\n" https://APP/michael-joh
 ```
 
 Expected: `200`; the relative résumé href (the snapshot would render the absolute `https://michaeljportfolio.me/...pdf` URL, so the relative one proves the page came from the moved VM rows); `http://` answers with a redirect to `https://APP/` (308 from the middleware, or a 301 if Railway's edge redirects first); `200 application/pdf`. After a page load, the runtime log has no new `content_service_fallback` line.
+
+- **Result (2026-10-08, checked from the VM, outside campus):** the apex domain already points to Railway (`69.46.46.18`, `server: railway-hikari`). `https://michaeljportfolio.me/` → 200, name and redesign present, résumé href `/michael-johnson-resume.pdf` (relative, so the page came from the moved Postgres rows, not the snapshot); `http://` → 301 to `https://` from Railway's edge (the middleware's 308 is a backup); PDF 200 `application/pdf`; certificate `CN = michaeljportfolio.me`, Let's Encrypt YR2, Oct 8 2026 – Jan 6 2027, SAN `michaeljportfolio.me` only. **`www.michaeljportfolio.me` still resolves to the VM (`135.232.245.90`) and serves the old design** — Task 7 Steps 1–2 still needed for `www`.
 
 - [ ] **Step 6: Record results**
 
