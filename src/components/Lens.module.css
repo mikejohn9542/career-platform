@@ -1,12 +1,12 @@
 .root {
-  --lens-dim: 0.22;
+  --lens-dim: 0.42;
 }
 
 /* Anything tagged for the other half dims when a lens is chosen. */
 .root[data-lens="business"] :global([data-tags]:not([data-tags~="business"])),
 .root[data-lens="technical"] :global([data-tags]:not([data-tags~="technical"])) {
   opacity: var(--lens-dim);
-  filter: saturate(0.2);
+  filter: saturate(0.4);
 }
 
 .root :global([data-tags]) {

@@ -1,0 +1,529 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-08T21:34:36.901Z",
+  "title": "Design System: Michael Johnson · Business Analytics & Full-Stack",
+  "extensions": {
+    "colorMeta": {
+      "navy-950": {
+        "role": "neutral",
+        "displayName": "Midnight",
+        "canonical": "#060f22",
+        "tonalRamp": [
+          "oklch(15% 0.042 262.6)",
+          "oklch(26% 0.042 262.6)",
+          "oklch(37% 0.042 262.6)",
+          "oklch(48% 0.042 262.6)",
+          "oklch(60% 0.042 262.6)",
+          "oklch(72% 0.042 262.6)",
+          "oklch(84% 0.042 262.6)",
+          "oklch(95% 0.021 262.6)"
+        ]
+      },
+      "navy-900": {
+        "role": "neutral",
+        "displayName": "Deck Navy",
+        "canonical": "#0a1730",
+        "tonalRamp": [
+          "oklch(15% 0.053 262.1)",
+          "oklch(26% 0.053 262.1)",
+          "oklch(37% 0.053 262.1)",
+          "oklch(48% 0.053 262.1)",
+          "oklch(60% 0.053 262.1)",
+          "oklch(72% 0.053 262.1)",
+          "oklch(84% 0.053 262.1)",
+          "oklch(95% 0.026 262.1)"
+        ]
+      },
+      "navy-800": {
+        "role": "neutral",
+        "displayName": "Slide Rule Navy",
+        "canonical": "#11234a",
+        "tonalRamp": [
+          "oklch(15% 0.076 263.5)",
+          "oklch(26% 0.076 263.5)",
+          "oklch(37% 0.076 263.5)",
+          "oklch(48% 0.076 263.5)",
+          "oklch(60% 0.076 263.5)",
+          "oklch(72% 0.076 263.5)",
+          "oklch(84% 0.076 263.5)",
+          "oklch(95% 0.038 263.5)"
+        ]
+      },
+      "navy-600": {
+        "role": "neutral",
+        "displayName": "Slate Navy",
+        "canonical": "#2a3f6e",
+        "tonalRamp": [
+          "oklch(15% 0.085 264.5)",
+          "oklch(26% 0.085 264.5)",
+          "oklch(37% 0.085 264.5)",
+          "oklch(48% 0.085 264.5)",
+          "oklch(60% 0.085 264.5)",
+          "oklch(72% 0.085 264.5)",
+          "oklch(84% 0.085 264.5)",
+          "oklch(95% 0.043 264.5)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#0b1630",
+        "tonalRamp": [
+          "oklch(15% 0.054 264.8)",
+          "oklch(26% 0.054 264.8)",
+          "oklch(37% 0.054 264.8)",
+          "oklch(48% 0.054 264.8)",
+          "oklch(60% 0.054 264.8)",
+          "oklch(72% 0.054 264.8)",
+          "oklch(84% 0.054 264.8)",
+          "oklch(95% 0.027 264.8)"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "#3c4a66",
+        "tonalRamp": [
+          "oklch(15% 0.051 263.8)",
+          "oklch(26% 0.051 263.8)",
+          "oklch(37% 0.051 263.8)",
+          "oklch(48% 0.051 263.8)",
+          "oklch(60% 0.051 263.8)",
+          "oklch(72% 0.051 263.8)",
+          "oklch(84% 0.051 263.8)",
+          "oklch(95% 0.025 263.8)"
+        ]
+      },
+      "ink-mute": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#5d6a85",
+        "tonalRamp": [
+          "oklch(15% 0.046 264.7)",
+          "oklch(26% 0.046 264.7)",
+          "oklch(37% 0.046 264.7)",
+          "oklch(48% 0.046 264.7)",
+          "oklch(60% 0.046 264.7)",
+          "oklch(72% 0.046 264.7)",
+          "oklch(84% 0.046 264.7)",
+          "oklch(95% 0.023 264.7)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0 89.9)",
+          "oklch(26% 0 89.9)",
+          "oklch(37% 0 89.9)",
+          "oklch(48% 0 89.9)",
+          "oklch(60% 0 89.9)",
+          "oklch(72% 0 89.9)",
+          "oklch(84% 0 89.9)",
+          "oklch(95% 0 89.9)"
+        ]
+      },
+      "paper-2": {
+        "role": "neutral",
+        "displayName": "Paper Two",
+        "canonical": "#f3f5fa",
+        "tonalRamp": [
+          "oklch(15% 0.007 268.5)",
+          "oklch(26% 0.007 268.5)",
+          "oklch(37% 0.007 268.5)",
+          "oklch(48% 0.007 268.5)",
+          "oklch(60% 0.007 268.5)",
+          "oklch(72% 0.007 268.5)",
+          "oklch(84% 0.007 268.5)",
+          "oklch(95% 0.004 268.5)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "#d9dfeb",
+        "tonalRamp": [
+          "oklch(15% 0.018 264.5)",
+          "oklch(26% 0.018 264.5)",
+          "oklch(37% 0.018 264.5)",
+          "oklch(48% 0.018 264.5)",
+          "oklch(60% 0.018 264.5)",
+          "oklch(72% 0.018 264.5)",
+          "oklch(84% 0.018 264.5)",
+          "oklch(95% 0.009 264.5)"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Strong Rule",
+        "canonical": "#b7c1d6",
+        "tonalRamp": [
+          "oklch(15% 0.032 265.3)",
+          "oklch(26% 0.032 265.3)",
+          "oklch(37% 0.032 265.3)",
+          "oklch(48% 0.032 265.3)",
+          "oklch(60% 0.032 265.3)",
+          "oklch(72% 0.032 265.3)",
+          "oklch(84% 0.032 265.3)",
+          "oklch(95% 0.016 265.3)"
+        ]
+      },
+      "cobalt": {
+        "role": "primary",
+        "displayName": "Electric Cobalt",
+        "canonical": "#2f62ff",
+        "tonalRamp": [
+          "oklch(15% 0.2 265.3)",
+          "oklch(26% 0.2 265.3)",
+          "oklch(37% 0.2 265.3)",
+          "oklch(48% 0.2 265.3)",
+          "oklch(60% 0.2 265.3)",
+          "oklch(72% 0.2 265.3)",
+          "oklch(84% 0.2 265.3)",
+          "oklch(95% 0.1 265.3)"
+        ]
+      },
+      "cobalt-bright": {
+        "role": "primary",
+        "displayName": "Lit Cobalt",
+        "canonical": "#6f95ff",
+        "tonalRamp": [
+          "oklch(15% 0.162 267.3)",
+          "oklch(26% 0.162 267.3)",
+          "oklch(37% 0.162 267.3)",
+          "oklch(48% 0.162 267.3)",
+          "oklch(60% 0.162 267.3)",
+          "oklch(72% 0.162 267.3)",
+          "oklch(84% 0.162 267.3)",
+          "oklch(95% 0.081 267.3)"
+        ]
+      },
+      "cobalt-wash": {
+        "role": "primary",
+        "displayName": "Cobalt Wash",
+        "canonical": "#e8eeff",
+        "tonalRamp": [
+          "oklch(15% 0.024 270.3)",
+          "oklch(26% 0.024 270.3)",
+          "oklch(37% 0.024 270.3)",
+          "oklch(48% 0.024 270.3)",
+          "oklch(60% 0.024 270.3)",
+          "oklch(72% 0.024 270.3)",
+          "oklch(84% 0.024 270.3)",
+          "oklch(95% 0.012 270.3)"
+        ]
+      },
+      "amber": {
+        "role": "secondary",
+        "displayName": "Exhibit Amber",
+        "canonical": "#f0a500",
+        "tonalRamp": [
+          "oklch(15% 0.163 76.2)",
+          "oklch(26% 0.163 76.2)",
+          "oklch(37% 0.163 76.2)",
+          "oklch(48% 0.163 76.2)",
+          "oklch(60% 0.163 76.2)",
+          "oklch(72% 0.163 76.2)",
+          "oklch(84% 0.163 76.2)",
+          "oklch(95% 0.081 76.2)"
+        ]
+      },
+      "amber-ink": {
+        "role": "secondary",
+        "displayName": "Amber Ink",
+        "canonical": "#8a5a00",
+        "tonalRamp": [
+          "oklch(15% 0.108 73.3)",
+          "oklch(26% 0.108 73.3)",
+          "oklch(37% 0.108 73.3)",
+          "oklch(48% 0.108 73.3)",
+          "oklch(60% 0.108 73.3)",
+          "oklch(72% 0.108 73.3)",
+          "oklch(84% 0.108 73.3)",
+          "oklch(95% 0.054 73.3)"
+        ]
+      },
+      "amber-wash": {
+        "role": "secondary",
+        "displayName": "Amber Wash",
+        "canonical": "#fff4d6",
+        "tonalRamp": [
+          "oklch(15% 0.041 90.2)",
+          "oklch(26% 0.041 90.2)",
+          "oklch(37% 0.041 90.2)",
+          "oklch(48% 0.041 90.2)",
+          "oklch(60% 0.041 90.2)",
+          "oklch(72% 0.041 90.2)",
+          "oklch(84% 0.041 90.2)",
+          "oklch(95% 0.02 90.2)"
+        ]
+      },
+      "on-navy": {
+        "role": "neutral",
+        "displayName": "On-Navy",
+        "canonical": "#f4f7ff",
+        "tonalRamp": [
+          "oklch(15% 0.011 269.6)",
+          "oklch(26% 0.011 269.6)",
+          "oklch(37% 0.011 269.6)",
+          "oklch(48% 0.011 269.6)",
+          "oklch(60% 0.011 269.6)",
+          "oklch(72% 0.011 269.6)",
+          "oklch(84% 0.011 269.6)",
+          "oklch(95% 0.006 269.6)"
+        ]
+      },
+      "on-navy-soft": {
+        "role": "neutral",
+        "displayName": "On-Navy Soft",
+        "canonical": "#b6c3e3",
+        "tonalRamp": [
+          "oklch(15% 0.047 267.9)",
+          "oklch(26% 0.047 267.9)",
+          "oklch(37% 0.047 267.9)",
+          "oklch(48% 0.047 267.9)",
+          "oklch(60% 0.047 267.9)",
+          "oklch(72% 0.047 267.9)",
+          "oklch(84% 0.047 267.9)",
+          "oklch(95% 0.024 267.9)"
+        ]
+      },
+      "hairline-on-navy": {
+        "role": "neutral",
+        "displayName": "Navy Hairline",
+        "canonical": "rgba(182, 195, 227, 0.3)",
+        "tonalRamp": [
+          "rgba(182, 195, 227, 0.1)",
+          "rgba(182, 195, 227, 0.2)",
+          "rgba(182, 195, 227, 0.3)",
+          "rgba(182, 195, 227, 0.45)",
+          "rgba(182, 195, 227, 0.6)",
+          "rgba(182, 195, 227, 0.75)",
+          "rgba(182, 195, 227, 0.9)",
+          "rgba(182, 195, 227, 1)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Two-line hero action title only."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Proof-exhibit numerals in amber on navy; tabular, fixed-slot."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Slide action titles written as takeaways, max 22ch."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Row titles: company, project, field of study."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text; ledes, summaries and bullets capped at 62-70ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Buttons, lens options, index links, chips; sentence case."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Exhibit source notes and the identity line."
+      }
+    },
+    "shadows": [
+      {
+        "name": "amber-glow",
+        "value": "0 10px 30px -12px rgba(240, 165, 0, 0.7)",
+        "purpose": "Under the amber primary button on navy."
+      },
+      {
+        "name": "navy-glow",
+        "value": "0 12px 30px -16px rgba(10, 23, 48, 0.8)",
+        "purpose": "Under the navy primary button on paper."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The only easing curve; every transition and entrance."
+      },
+      {
+        "name": "button",
+        "value": "260ms",
+        "purpose": "Button lift (translateY -2px), background and shadow."
+      },
+      {
+        "name": "state",
+        "value": "300ms",
+        "purpose": "Index link and lens option color/indent shifts."
+      },
+      {
+        "name": "lens-thumb",
+        "value": "380ms",
+        "purpose": "Lens thumb slide."
+      },
+      {
+        "name": "lens-dim",
+        "value": "420ms",
+        "purpose": "Re-weighting of tagged content: off-lens opacity 0.42, saturate(0.4)."
+      },
+      {
+        "name": "rise",
+        "value": "800-900ms; fade + translateY(18px)",
+        "purpose": "Hero title lines (120ms stagger) and proof slots (140ms stagger)."
+      },
+      {
+        "name": "pop",
+        "value": "600ms; fade + scale(0.4)",
+        "purpose": "Exhibit graphic cells, 45ms stagger."
+      },
+      {
+        "name": "count-up",
+        "value": "1400ms exponential ease-out",
+        "purpose": "Figures counting into fixed slots once 60% visible; skipped under reduced motion."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "0.01ms",
+        "purpose": "All animation and transition durations collapse."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "stack",
+        "value": "720px"
+      },
+      {
+        "name": "deck",
+        "value": "960px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button (on navy)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Amber pill for the single primary action (resume download) on the navy title slide.",
+      "html": "<div class=\"ds-navy\"><a class=\"ds-btn ds-btn-primary\" href=\"#\">Download résumé <span class=\"ds-pdf\">PDF</span></a></div>",
+      "css": ".ds-navy{background:var(--navy-900,#0a1730);padding:24px;color:var(--on-navy,#f4f7ff);font-family:'Hanken Grotesk',system-ui,sans-serif;} .ds-navy :focus-visible{outline-color:var(--amber,#f0a500) !important;} .ds-btn{display:inline-flex;align-items:center;gap:0.75rem;min-height:2.75rem;padding:0 1.5rem;border-radius:999px;font:700 0.98rem/1 'Hanken Grotesk',system-ui,sans-serif;text-decoration:none;cursor:pointer;border:0;transition:transform 260ms cubic-bezier(0.16,1,0.3,1),background-color 260ms cubic-bezier(0.16,1,0.3,1),box-shadow 260ms cubic-bezier(0.16,1,0.3,1);} .ds-btn:focus-visible{outline:3px solid var(--cobalt,#2f62ff);outline-offset:3px;} .ds-pdf{padding:2px 6px;border-radius:4px;background:rgba(6,15,34,0.14);font-size:0.72rem;letter-spacing:0.06em;} .ds-btn-primary{background:var(--amber,#f0a500);color:var(--navy-950,#060f22);box-shadow:0 10px 30px -12px rgba(240,165,0,0.7);} .ds-btn-primary:hover{transform:translateY(-2px);}"
+    },
+    {
+      "name": "Primary Dark Button (on paper)",
+      "kind": "button",
+      "refersTo": "button-primary-dark",
+      "description": "Navy pill for the primary action on white slides.",
+      "html": "<a class=\"ds-btn ds-btn-dark\" href=\"#\">Download résumé <span class=\"ds-pdf\">PDF</span></a>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:0.75rem;min-height:2.75rem;padding:0 1.5rem;border-radius:999px;font:700 0.98rem/1 'Hanken Grotesk',system-ui,sans-serif;text-decoration:none;cursor:pointer;border:0;transition:transform 260ms cubic-bezier(0.16,1,0.3,1),background-color 260ms cubic-bezier(0.16,1,0.3,1),box-shadow 260ms cubic-bezier(0.16,1,0.3,1);} .ds-btn:focus-visible{outline:3px solid var(--cobalt,#2f62ff);outline-offset:3px;} .ds-pdf{padding:2px 6px;border-radius:4px;background:rgba(6,15,34,0.14);font-size:0.72rem;letter-spacing:0.06em;} .ds-btn-dark{background:var(--navy-900,#0a1730);color:var(--on-navy,#f4f7ff);box-shadow:0 12px 30px -16px rgba(10,23,48,0.8);} .ds-btn-dark:hover{transform:translateY(-2px);}"
+    },
+    {
+      "name": "Secondary Button (on navy)",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Hairline-outlined pill for secondary actions on navy; turns amber when confirmed.",
+      "html": "<div class=\"ds-navy\"><button class=\"ds-btn ds-btn-secondary\">Copy email</button> <button class=\"ds-btn ds-btn-secondary\" data-copied=\"true\">Copied</button></div>",
+      "css": ".ds-navy{background:var(--navy-900,#0a1730);padding:24px;color:var(--on-navy,#f4f7ff);font-family:'Hanken Grotesk',system-ui,sans-serif;} .ds-navy :focus-visible{outline-color:var(--amber,#f0a500) !important;} .ds-btn{display:inline-flex;align-items:center;gap:0.75rem;min-height:2.75rem;padding:0 1.5rem;border-radius:999px;font:700 0.98rem/1 'Hanken Grotesk',system-ui,sans-serif;text-decoration:none;cursor:pointer;border:0;transition:transform 260ms cubic-bezier(0.16,1,0.3,1),background-color 260ms cubic-bezier(0.16,1,0.3,1),box-shadow 260ms cubic-bezier(0.16,1,0.3,1);} .ds-btn:focus-visible{outline:3px solid var(--cobalt,#2f62ff);outline-offset:3px;} .ds-pdf{padding:2px 6px;border-radius:4px;background:rgba(6,15,34,0.14);font-size:0.72rem;letter-spacing:0.06em;} .ds-btn-secondary{border:1px solid rgba(182,195,227,0.45);background:transparent;color:var(--on-navy,#f4f7ff);} .ds-btn-secondary:hover{background:rgba(244,247,255,0.08);} .ds-btn-secondary[data-copied=true]{border-color:var(--amber,#f0a500);color:var(--amber,#f0a500);}"
+    },
+    {
+      "name": "Role Lens Switch",
+      "kind": "custom",
+      "refersTo": "lens-switch",
+      "description": "Signature three-way radiogroup; a sliding thumb marks the active lens, which dims off-lens content and lights on-lens chips.",
+      "html": "<div class=\"ds-navy\"><div class=\"ds-lens\" role=\"radiogroup\" aria-label=\"Highlight experience for a role\"><span class=\"ds-lens-thumb\" aria-hidden=\"true\"></span><button class=\"ds-lens-opt\" type=\"button\" role=\"radio\" aria-checked=\"true\" data-active=\"true\">Both</button><button class=\"ds-lens-opt\" type=\"button\" role=\"radio\" aria-checked=\"false\">Business</button><button class=\"ds-lens-opt\" type=\"button\" role=\"radio\" aria-checked=\"false\">Technical</button></div></div>",
+      "css": ".ds-navy{background:var(--navy-900,#0a1730);padding:24px;color:var(--on-navy,#f4f7ff);font-family:'Hanken Grotesk',system-ui,sans-serif;} .ds-navy :focus-visible{outline-color:var(--amber,#f0a500) !important;} .ds-lens{position:relative;display:inline-grid;grid-template-columns:repeat(3,minmax(6.5rem,1fr));padding:4px;border:1px solid rgba(182,195,227,0.35);border-radius:999px;background:rgba(6,15,34,0.55);} .ds-lens-thumb{position:absolute;inset:4px auto 4px 4px;width:calc((100% - 8px) / 3);border-radius:999px;background:var(--on-navy,#f4f7ff);transition:transform 380ms cubic-bezier(0.16,1,0.3,1);} .ds-lens-opt{position:relative;z-index:1;min-height:2.75rem;padding:0 1rem;border:0;border-radius:999px;background:transparent;color:var(--on-navy-soft,#b6c3e3);font:600 0.95rem/1 'Hanken Grotesk',system-ui,sans-serif;cursor:pointer;transition:color 300ms cubic-bezier(0.16,1,0.3,1);} .ds-lens-opt:hover{color:var(--on-navy,#f4f7ff);} .ds-lens-opt[data-active=true]{color:var(--navy-950,#060f22);} .ds-lens-opt:focus-visible{outline:3px solid var(--amber,#f0a500);outline-offset:3px;}"
+    },
+    {
+      "name": "Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Pill tags for stack and skills: resting, lit by the technical lens, lit by the business lens, and dimmed off-lens.",
+      "html": "<ul class=\"ds-chips\"><li class=\"ds-chip\">Python</li><li class=\"ds-chip ds-chip-tech\">React</li><li class=\"ds-chip ds-chip-biz\">Financial Analysis</li><li class=\"ds-chip ds-chip-off\">Docker</li></ul>",
+      "css": ".ds-chips{display:flex;flex-wrap:wrap;gap:0.5rem;margin:0;padding:0;list-style:none;font-family:'Hanken Grotesk',system-ui,sans-serif;} .ds-chip{padding:6px 12px;border:1px solid var(--rule-strong,#b7c1d6);border-radius:999px;background:var(--paper,#fff);color:var(--ink,#0b1630);font-size:0.92rem;font-weight:600;transition:opacity 420ms cubic-bezier(0.16,1,0.3,1),filter 420ms cubic-bezier(0.16,1,0.3,1),background-color 420ms cubic-bezier(0.16,1,0.3,1),border-color 420ms cubic-bezier(0.16,1,0.3,1);} .ds-chip-tech{background:var(--cobalt-wash,#e8eeff);border-color:var(--cobalt,#2f62ff);} .ds-chip-biz{background:var(--amber-wash,#fff4d6);border-color:var(--amber,#f0a500);} .ds-chip-off{opacity:0.42;filter:saturate(0.4);}"
+    },
+    {
+      "name": "Proof Exhibit",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Signature three-slot results strip on navy: amber tabular figures, label, source note, hairline dividers.",
+      "html": "<div class=\"ds-navy\"><ol class=\"ds-proof\"><li><span class=\"ds-proof-v\">20%</span><span class=\"ds-proof-l\">helped cut mortgage file errors and delays</span><span class=\"ds-proof-s\">CP Financial and CP Realty Inc.</span></li><li><span class=\"ds-proof-v\">1st</span><span class=\"ds-proof-l\">place, regional datathon</span><span class=\"ds-proof-s\">Datathon</span></li><li><span class=\"ds-proof-v\">1,732</span><span class=\"ds-proof-l\">dispatch records analyzed in SQL and Python</span><span class=\"ds-proof-s\">21 California bases</span></li></ol></div>",
+      "css": ".ds-navy{background:var(--navy-900,#0a1730);padding:24px;color:var(--on-navy,#f4f7ff);font-family:'Hanken Grotesk',system-ui,sans-serif;} .ds-navy :focus-visible{outline-color:var(--amber,#f0a500) !important;} .ds-proof{display:grid;grid-template-columns:repeat(3,1fr);margin:0;padding:0;list-style:none;border-top:1px solid rgba(182,195,227,0.3);} .ds-proof li{display:grid;align-content:start;gap:0.5rem;padding:1.5rem 1.5rem 0 0;} .ds-proof li+li{padding-left:1.5rem;border-left:1px solid rgba(182,195,227,0.3);} .ds-proof-v{font-family:'Archivo',system-ui,sans-serif;font-size:clamp(2.6rem,5vw,4rem);font-weight:800;font-stretch:112%;line-height:1;color:var(--amber,#f0a500);font-variant-numeric:tabular-nums;} .ds-proof-l{font-weight:600;font-size:1.05rem;} .ds-proof-s{color:var(--on-navy-soft,#b6c3e3);font-size:0.88rem;}"
+    },
+    {
+      "name": "Deck Index",
+      "kind": "nav",
+      "refersTo": "deck-index-link",
+      "description": "Sticky section rail; the current section takes a cobalt rule and indents.",
+      "html": "<nav class=\"ds-index\" aria-label=\"Sections\"><ol><li><a href=\"#\" aria-current=\"true\">Experience</a></li><li><a href=\"#\">Projects</a></li><li><a href=\"#\">Education</a></li><li><a href=\"#\">Skills</a></li></ol></nav>",
+      "css": ".ds-index ol{display:grid;gap:0.25rem;width:11rem;margin:0;padding:0;list-style:none;} .ds-index a{display:block;padding:0.5rem 0.75rem;border-left:1px solid var(--rule,#d9dfeb);color:var(--ink-mute,#5d6a85);font:600 0.95rem/1.6 'Hanken Grotesk',system-ui,sans-serif;text-decoration:none;transition:color 300ms cubic-bezier(0.16,1,0.3,1),border-color 300ms cubic-bezier(0.16,1,0.3,1),padding-left 300ms cubic-bezier(0.16,1,0.3,1);} .ds-index a:hover{color:var(--ink,#0b1630);} .ds-index a[aria-current=true]{border-left-color:var(--cobalt,#2f62ff);color:var(--ink,#0b1630);padding-left:1rem;} .ds-index a:focus-visible{outline:3px solid var(--cobalt,#2f62ff);outline-offset:3px;border-radius:4px;}"
+    },
+    {
+      "name": "Exhibit Row",
+      "kind": "card",
+      "refersTo": "",
+      "description": "Hairline-ruled two-column row (meta | content) used instead of cards, with badge, cobalt-marked bullets, figures in the display face, and an external link.",
+      "html": "<article class=\"ds-row\"><div class=\"ds-meta\"><p class=\"ds-dates\">Mar 2026</p><p>Los Angeles, CA</p></div><div><h3 class=\"ds-rt\">Datathon <span class=\"ds-badge\">1st place</span></h3><ul class=\"ds-bul\"><li>Analyzed <strong class=\"ds-fig\">1,732</strong> emergency dispatch records across <strong class=\"ds-fig\">21</strong> California bases.</li></ul><a class=\"ds-link\" href=\"#\">Presentation <svg viewBox=\"0 0 12 12\" width=\"12\" height=\"12\" aria-hidden=\"true\"><path d=\"M4 2h6v6M10 2 3 9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></a></div></article>",
+      "css": ".ds-row{display:grid;grid-template-columns:12rem minmax(0,1fr);gap:2rem;padding-top:2rem;border-top:1px solid var(--rule,#d9dfeb);font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--ink,#0b1630);line-height:1.6;} .ds-row p{margin:0;} .ds-meta{display:grid;align-content:start;gap:0.25rem;color:var(--ink-mute,#5d6a85);font-size:0.95rem;} .ds-dates{color:var(--ink,#0b1630);font-weight:700;font-variant-numeric:tabular-nums;} .ds-rt{display:flex;flex-wrap:wrap;align-items:center;gap:0.75rem;margin:0;font-family:'Archivo',system-ui,sans-serif;font-size:clamp(1.4rem,2.4vw,1.75rem);font-weight:700;line-height:1.05;letter-spacing:-0.02em;} .ds-badge{padding:4px 10px;border-radius:999px;background:var(--amber,#f0a500);color:var(--navy-950,#060f22);font:700 0.78rem/1.2 'Hanken Grotesk',system-ui,sans-serif;letter-spacing:0.02em;} .ds-bul{display:grid;gap:0.75rem;margin:1rem 0 0;padding-left:1.1rem;color:var(--ink-soft,#3c4a66);} .ds-bul li::marker{color:var(--cobalt,#2f62ff);} .ds-fig{font-family:'Archivo',system-ui,sans-serif;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink,#0b1630);} .ds-link{display:inline-flex;align-items:center;gap:6px;min-height:2.75rem;margin-top:1rem;color:var(--cobalt,#2f62ff);font-weight:700;text-decoration-thickness:1px;text-underline-offset:0.22em;} .ds-link:hover{text-decoration-thickness:2px;} .ds-link:focus-visible{outline:3px solid var(--cobalt,#2f62ff);outline-offset:3px;border-radius:4px;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Exhibit",
+    "overview": "The page is a consulting deck. A full-bleed deck-navy title slide carries a monumental two-line action title and a strip of numbered exhibits; below it, white slides each open with a takeaway headline and read like the body of a client presentation. Structure comes from hairline rules, fixed-slot figures and an index rail, not from boxes. Density is moderate. The negative space around the action titles is there on purpose, and the supporting rows are tight and scannable.\n\nColor carries meaning. Cobalt is the system's single signal for links, focus, selection, the scroll-progress bar and the \"technical\" lens. Amber is the second line: proof figures, the primary résumé action, the first-place badge and the \"business\" lens. The role lens is the signature interaction. It dims whatever is off-lens and lights the matching chips in that lens's wash, so one page can serve two kinds of reader.\n\nMotion is short and eased out (one curve, `cubic-bezier(0.16, 1, 0.3, 1)`). Titles and exhibits rise in, figures count up into slots reserved at their final width, and all of it collapses under reduced motion.",
+    "keyCharacteristics": [
+      "Navy title slide, white content slides, one closing panel in paper-2.",
+      "Archivo set wide (wdth 108–115) and heavy (800) for action titles and figures; Hanken Grotesk for everything read.",
+      "Hairline exhibit rules (1px) in place of cards; no cards nested in cards.",
+      "Tabular figures in fixed-width slots; figures inside sentences are set in the display face.",
+      "Pill-shaped controls; the 44px minimum touch height is held on every button and link row.",
+      "Two-lens color coding: cobalt = technical, amber = business."
+    ],
+    "rules": [
+      {
+        "name": "The Two Lenses Rule",
+        "body": "Cobalt means technical and amber means business. Wherever the lens is involved, the hue tells the reader which reading they are in. Never swap them, and never add a third lens hue.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Signal Rule",
+        "body": "On paper, cobalt is the only accent for interaction (links, focus, selection, progress). Amber on paper is limited to the badge, the business lens and the warm washes.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fixed Slot Rule",
+        "body": "Every displayed figure uses tabular numerals. A figure that animates reserves its final width before it moves, so nothing reflows, and the final value is server-rendered for screen readers and no-JS readers.",
+        "section": "typography"
+      },
+      {
+        "name": "The Figure-in-Sentence Rule",
+        "body": "Numerals and \"first place\" inside body copy are set in Archivo 700 in ink, so a scanning eye lands on the evidence. Four-digit years are excluded.",
+        "section": "typography"
+      },
+      {
+        "name": "The Hairline Exhibit Rule",
+        "body": "Sections, rows and proof slots are separated by 1px rules (rule on paper, navy hairline on navy), never by cards, borders on every side, or shadows.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** open every slide with a takeaway headline (Archivo 800, wdth 108, max 22ch), not a category label.",
+      "**Do** set every figure in tabular numerals and reserve its final width before animating it.",
+      "**Do** separate rows and exhibits with 1px rules (rule on paper, navy hairline on navy).",
+      "**Do** keep cobalt = technical and amber = business wherever the role lens touches.",
+      "**Do** keep every button, lens option and link row at least 2.75rem tall.",
+      "**Do** use `cubic-bezier(0.16, 1, 0.3, 1)` for all motion and honor prefers-reduced-motion.",
+      "**Do** switch the focus ring to amber inside navy regions."
+    ],
+    "donts": [
+      "**Don't** wrap rows or exhibits in cards, and never nest a card inside a card. The closing panel is the only filled container.",
+      "**Don't** let the lens hide content. It only dims (0.42 opacity) and lights.",
+      "**Don't** introduce a third accent hue or swap the lens hue assignments.",
+      "**Don't** put shadows on anything other than the two filled primary buttons.",
+      "**Don't** animate a figure that was not server-rendered at its final value first."
+    ]
+  }
+}

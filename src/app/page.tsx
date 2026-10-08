@@ -58,6 +58,16 @@ function projectTags(stack: string[]): Tag[] {
   return technicalOnly ? ["technical"] : Array.from(tags);
 }
 
+const TECHNICAL_WORDS = /\b(sql|python|excel|spreadsheet|tracking systems|data|full-stack|web app|docker|react|typescript|sqlalchemy|sqlite|postgres|vllm|git|llms?)\b/i;
+const BUSINESS_WORDS = /\b(financ\w*|budgets?|underwriting|risk|loans?|mortgage|compliance|escrow|title insurance|operations?|operational|logistics|inventory|scheduling|process|service|clients?|board|insights?|members|reporting|recordkeeping|competition|judges|labor law)\b/i;
+
+function bulletTags(text: string, fallback: Tag[]): Tag[] {
+  const tags: Tag[] = [];
+  if (BUSINESS_WORDS.test(text)) tags.push("business");
+  if (TECHNICAL_WORDS.test(text)) tags.push("technical");
+  return tags.length ? tags : fallback;
+}
+
 function ExternalIcon() {
   return (
     <svg className={styles.externalIcon} viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
@@ -80,8 +90,10 @@ export default async function HomePage() {
   const datathon = projects.find((project) => project.slug === "datathon-ems-dispatch");
   const resumeHref = resume.pdfUrl.toLowerCase().endsWith(".pdf") ? resume.pdfUrl : "/michael-johnson-resume.pdf";
 
+  const gpa = education[0]?.summary?.match(/GPA:?\s*(\d\.\d+)/i)?.[1];
+
   const proof: { value: number; prefix?: string; suffix?: string; label: string; source: string; tags: Tag[] }[] = [
-    { value: 20, suffix: "%", label: "fewer mortgage file errors and delays", source: experience[0]?.company ?? "", tags: ["business"] },
+    { value: 20, suffix: "%", label: "helped cut mortgage file errors and delays", source: experience[0]?.company ?? "", tags: ["business"] },
     { value: 1, suffix: "st", label: "place, regional datathon", source: datathon?.title ?? "Datathon", tags: ["business", "technical"] },
     { value: 1732, label: "dispatch records analyzed in SQL and Python", source: "21 California bases", tags: ["business", "technical"] },
   ];
@@ -94,7 +106,12 @@ export default async function HomePage() {
 
       <header className={`${styles.hero} on-navy`}>
         <div className={styles.heroBar}>
-          <p className={styles.name}>{profile.name}</p>
+          <div>
+            <p className={styles.name}>{profile.name}</p>
+            <p className={styles.identity}>
+              {profile.headline} · {profile.location}
+            </p>
+          </div>
           <div className={styles.actions}>
             <a className={styles.primary} href={resumeHref} download>
               Download résumé
@@ -110,7 +127,6 @@ export default async function HomePage() {
             <span className={styles.titleSecond}>Full-stack builder.</span>
           </h1>
           <p className={styles.lede}>{profile.summary}</p>
-          <p className={styles.meta}>{profile.location}</p>
         </div>
 
         <div className={styles.lensRow}>
@@ -142,7 +158,7 @@ export default async function HomePage() {
               Finance and operations, run on data
             </h2>
             {experience.map((job) => (
-              <article key={`${job.company}-${job.startDate}`} className={styles.row} data-tags="business">
+              <article key={`${job.company}-${job.startDate}`} className={styles.row}>
                 <div className={styles.rowMeta}>
                   <p className={styles.dates}>{formatRange(job.startDate, job.endDate, job.current)}</p>
                   <p>{job.location}</p>
@@ -152,7 +168,9 @@ export default async function HomePage() {
                   <p className={styles.role}>{job.role}</p>
                   <ul className={styles.bullets}>
                     {job.highlights.map((highlight) => (
-                      <li key={highlight}>{emphasizeFigures(highlight)}</li>
+                      <li key={highlight} data-tags={bulletTags(highlight, ["business"]).join(" ")}>
+                        {emphasizeFigures(highlight)}
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -167,7 +185,7 @@ export default async function HomePage() {
             {projects.map((project) => {
               const isDatathon = project.slug === "datathon-ems-dispatch";
               return (
-                <article key={project.slug} className={styles.row} data-tags={projectTags(project.stack).join(" ")}>
+                <article key={project.slug} className={styles.row}>
                   <div className={styles.rowMeta}>
                     {isDatathon ? (
                       <div className={styles.bases} aria-label="21 California bases analyzed">
@@ -185,10 +203,14 @@ export default async function HomePage() {
                       {project.title}
                       {isDatathon ? <span className={styles.badge}>1st place</span> : null}
                     </h3>
-                    <p className={styles.summary}>{emphasizeFigures(project.summary)}</p>
+                    <p className={styles.summary} data-tags={projectTags(project.stack).join(" ")}>
+                      {emphasizeFigures(project.summary)}
+                    </p>
                     <ul className={styles.bullets}>
                       {project.highlights.map((highlight) => (
-                        <li key={highlight}>{emphasizeFigures(highlight)}</li>
+                        <li key={highlight} data-tags={bulletTags(highlight, projectTags(project.stack)).join(" ")}>
+                          {emphasizeFigures(highlight)}
+                        </li>
                       ))}
                     </ul>
                     <ul className={styles.chips} aria-label={`${project.title} stack`}>
@@ -216,7 +238,7 @@ export default async function HomePage() {
             {education.map((entry) => (
               <Fragment key={entry.school}>
                 <h2 id="education-title" className={styles.actionTitle}>
-                  {entry.school}
+                  {gpa ? `A ${gpa} GPA at ${entry.school}` : entry.school}
                 </h2>
                 <div className={styles.row}>
                   <div className={styles.rowMeta}>

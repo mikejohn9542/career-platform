@@ -121,10 +121,10 @@
   font-size: clamp(1.05rem, 1.6vw, 1.25rem);
 }
 
-.meta {
-  margin-top: var(--space-4);
+.identity {
+  margin-top: 2px;
   color: var(--on-navy-soft);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
 }
 
 .lensRow {
@@ -398,6 +398,23 @@
 }
 
 @media (max-width: 720px) {
+  .hero {
+    padding-bottom: var(--space-7);
+  }
+
+  .heroBody {
+    margin-top: var(--space-6);
+  }
+
+  .lede {
+    margin-top: var(--space-4);
+  }
+
+  .lensRow,
+  .proof {
+    margin-top: var(--space-5);
+  }
+
   .proof {
     grid-template-columns: 1fr;
   }
