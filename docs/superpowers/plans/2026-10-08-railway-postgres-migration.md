@@ -1380,8 +1380,10 @@ Expected in order: build (`Wrote profile snapshot`, route table with `ƒ Middlew
 - [ ] **Step 4 (laptop, after the user's OK): move the rows**
 
 ```bash
-DATABASE_URL="$(grep '^RAILWAY_DATABASE_URL=' .env | cut -d= -f2-)" npm run -s db:move-rows -- data/backups/career-platform-20261008T2154Z.sqlite
+DATABASE_URL="$(grep '^RAILWAY_DATABASE_URL=' .env | cut -d= -f2-)?sslmode=no-verify" npm run -s db:move-rows -- data/backups/career-platform-20261008T2154Z.sqlite
 ```
+
+`?sslmode=no-verify` encrypts the connection over the public proxy without checking Railway's self-signed certificate. Without it, node-postgres connects in plaintext, and `sslmode=require` alone is treated as `verify-full` by pg-connection-string 2.14 and rejects the certificate. Before the real run, confirm TLS with a read-only query: `select ssl from pg_stat_ssl where pid = pg_backend_pid()` must return `true`.
 
 Expected: a table with all 13 content tables `identical: true` and counts matching the backup section above, then `All tables match the backup.`
 
