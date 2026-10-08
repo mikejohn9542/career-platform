@@ -79,6 +79,18 @@ describe("content service", () => {
       logger: { warn: vi.fn() },
     })).toThrow(/snapshot/i);
   });
+  it("logs a fallback when the database is reachable but empty", async () => {
+    const content = makeFixtureContent();
+    const warn = vi.fn();
+    const service = createContentService({
+      database: { getSiteContent: vi.fn().mockResolvedValue(null), getProjectBySlug: vi.fn() },
+      snapshot: content,
+      logger: { warn },
+    });
+
+    await expect(service.getSiteContent()).resolves.toEqual({ content, source: "snapshot" });
+    expect(warn).toHaveBeenCalledWith("content_service_fallback", expect.objectContaining({ reason: "empty" }));
+  });
 });
 
 describe("createDefaultDatabaseProvider", () => {

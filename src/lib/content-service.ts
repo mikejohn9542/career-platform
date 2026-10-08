@@ -64,6 +64,7 @@ export function createContentService({
         try {
           const content = await database.getSiteContent();
           if (content) return { content, source: "database" };
+          log.warn("content_service_fallback", { operation: "getSiteContent", source: "database", reason: "empty" });
         } catch (error) {
           log.warn("content_service_fallback", {
             operation: "getSiteContent",
