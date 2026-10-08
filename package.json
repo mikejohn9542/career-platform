@@ -12,7 +12,8 @@
     "content:validate": "tsx scripts/validate-content.ts",
     "content:snapshot": "tsx scripts/generate-snapshot.ts",
     "db:migrate": "tsx scripts/migrate.ts",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "db:move-rows": "tsx scripts/move-rows-from-sqlite.ts"
   },
   "dependencies": {
     "dotenv": "^16.5.0",
