@@ -1,0 +1,145 @@
+:root {
+  --navy-950: #060f22;
+  --navy-900: #0a1730;
+  --navy-800: #11234a;
+  --navy-600: #2a3f6e;
+  --ink: #0b1630;
+  --ink-soft: #3c4a66;
+  --ink-mute: #5d6a85;
+  --paper: #ffffff;
+  --paper-2: #f3f5fa;
+  --rule: #d9dfeb;
+  --rule-strong: #b7c1d6;
+  --cobalt: #2f62ff;
+  --cobalt-bright: #6f95ff;
+  --cobalt-wash: #e8eeff;
+  --amber: #f0a500;
+  --amber-ink: #8a5a00;
+  --amber-wash: #fff4d6;
+  --on-navy: #f4f7ff;
+  --on-navy-soft: #b6c3e3;
+
+  --font-display: var(--font-archivo), "Archivo", system-ui, sans-serif;
+  --font-body: var(--font-hanken), "Hanken Grotesk", system-ui, sans-serif;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+  --space-9: 7rem;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --page-max: 76rem;
+  --gutter: clamp(1rem, 4vw, 3rem);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--space-6);
+  scrollbar-color: var(--navy-600) var(--paper-2);
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  caret-color: var(--cobalt);
+}
+
+::selection {
+  background: var(--cobalt);
+  color: var(--paper);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--cobalt);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--cobalt);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.on-navy :focus-visible {
+  outline-color: var(--amber);
+}
+
+.fig {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--space-4);
+  top: -4rem;
+  z-index: 50;
+  padding: var(--space-2) var(--space-4);
+  background: var(--amber);
+  color: var(--navy-950);
+  font-weight: 700;
+  border-radius: 6px;
+}
+
+.skip-link:focus {
+  top: var(--space-4);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

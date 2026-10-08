@@ -1,0 +1,427 @@
+/* Hero: the deck's title slide, full-bleed navy. */
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-5) var(--gutter) var(--space-8);
+  background:
+    linear-gradient(var(--navy-800) 1px, transparent 1px) 0 0 / 100% 6rem,
+    var(--navy-900);
+  color: var(--on-navy);
+}
+
+.heroBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  max-width: var(--page-max);
+  margin: 0 auto;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.primary,
+.primaryDark,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.75rem;
+  padding: 0 var(--space-5);
+  border-radius: 999px;
+  font: 700 0.98rem/1 var(--font-body);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 260ms var(--ease-out),
+    background-color 260ms var(--ease-out),
+    box-shadow 260ms var(--ease-out);
+}
+
+.primary {
+  background: var(--amber);
+  color: var(--navy-950);
+  box-shadow: 0 10px 30px -12px rgba(240, 165, 0, 0.7);
+}
+
+.primary:hover,
+.primaryDark:hover {
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.primaryDark {
+  background: var(--navy-900);
+  color: var(--on-navy);
+  box-shadow: 0 12px 30px -16px rgba(10, 23, 48, 0.8);
+}
+
+.secondary {
+  border: 1px solid rgba(182, 195, 227, 0.45);
+  background: transparent;
+  color: var(--on-navy);
+}
+
+.secondary:hover {
+  background: rgba(244, 247, 255, 0.08);
+}
+
+.secondary[data-copied="true"] {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+.pdfTag {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(6, 15, 34, 0.14);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+
+.heroBody {
+  max-width: var(--page-max);
+  margin: clamp(3.5rem, 11vh, 7.5rem) auto 0;
+}
+
+.title {
+  display: grid;
+  font-size: clamp(2.9rem, 8.4vw, 6rem);
+  font-weight: 800;
+  font-stretch: 115%;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+}
+
+.title > span {
+  animation: rise 900ms var(--ease-out) both;
+}
+
+.titleSecond {
+  color: var(--cobalt-bright);
+  animation-delay: 120ms !important;
+}
+
+.lede {
+  max-width: 62ch;
+  margin-top: var(--space-6);
+  color: var(--on-navy-soft);
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+}
+
+.meta {
+  margin-top: var(--space-4);
+  color: var(--on-navy-soft);
+  font-size: 0.95rem;
+}
+
+.lensRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: var(--page-max);
+  margin: var(--space-7) auto 0;
+}
+
+.lensLabel {
+  color: var(--on-navy-soft);
+  font-weight: 600;
+}
+
+/* Proof exhibit: three results in fixed-width slots. */
+.proof {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: var(--page-max);
+  margin: var(--space-7) auto 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid rgba(182, 195, 227, 0.3);
+}
+
+.proofItem {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-5) 0 0;
+  animation: rise 800ms var(--ease-out) both;
+}
+
+.proofItem + .proofItem {
+  padding-left: var(--space-5);
+  border-left: 1px solid rgba(182, 195, 227, 0.3);
+}
+
+.proofValue {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 5vw, 4rem);
+  font-weight: 800;
+  font-stretch: 112%;
+  line-height: 1;
+  color: var(--amber);
+}
+
+.proofLabel {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.proofSource {
+  color: var(--on-navy-soft);
+  font-size: 0.88rem;
+}
+
+/* The deck: index rail + slides. */
+.deck {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: var(--space-7);
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: var(--space-8) var(--gutter) var(--space-9);
+}
+
+.slides {
+  display: grid;
+  gap: var(--space-9);
+  min-width: 0;
+}
+
+.slide {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.actionTitle {
+  max-width: 22ch;
+  font-size: clamp(2rem, 4vw, 3.1rem);
+  font-weight: 800;
+  font-stretch: 108%;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 12rem minmax(0, 1fr);
+  gap: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--rule);
+}
+
+.rowMeta {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  color: var(--ink-mute);
+  font-size: 0.95rem;
+}
+
+.dates {
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: clamp(1.4rem, 2.4vw, 1.75rem);
+  font-weight: 700;
+}
+
+.role {
+  margin-top: var(--space-1);
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.summary {
+  max-width: 68ch;
+  margin-top: var(--space-3);
+  color: var(--ink-soft);
+}
+
+.bullets {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 70ch;
+  margin: var(--space-4) 0 0;
+  padding-left: 1.1rem;
+  color: var(--ink-soft);
+}
+
+.bullets li::marker {
+  color: var(--cobalt);
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: var(--navy-950);
+  font: 700 0.78rem/1.2 var(--font-body);
+  letter-spacing: 0.02em;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips li {
+  padding: 6px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+  font-weight: 700;
+}
+
+.links a,
+.closeActions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 2.75rem;
+}
+
+.externalIcon {
+  flex: none;
+}
+
+/* Datathon exhibit: one cell per California base. */
+.bases {
+  display: grid;
+  grid-template-columns: repeat(7, 0.85rem);
+  gap: 6px;
+}
+
+.bases span {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 3px;
+  background: var(--cobalt);
+  animation: pop 600ms var(--ease-out) both;
+}
+
+.basesCaption {
+  grid-column: 1 / -1;
+  margin-top: var(--space-2);
+  color: var(--ink-mute);
+}
+
+.skillGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--rule);
+}
+
+.skillGroup {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.skillGroup + .chips {
+  margin-top: var(--space-3);
+}
+
+/* Closing slide. */
+.close {
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-7);
+  border-radius: 20px;
+  background: var(--paper-2);
+}
+
+.closeTitle {
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  font-weight: 800;
+  font-stretch: 112%;
+}
+
+.closeActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5);
+  font-weight: 700;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+@media (max-width: 960px) {
+  .deck {
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: var(--space-7);
+  }
+}
+
+@media (max-width: 720px) {
+  .proof {
+    grid-template-columns: 1fr;
+  }
+
+  .proofItem + .proofItem {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid rgba(182, 195, 227, 0.3);
+  }
+
+  .proofItem {
+    padding-bottom: var(--space-5);
+  }
+
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .lensRow {
+    display: grid;
+  }
+
+  .close {
+    padding: var(--space-6) var(--space-5);
+  }
+}

@@ -27,3 +27,6 @@ data/
 .DS_Store
 Thumbs.db
 src/generated/profile-snapshot.json
+
+# Impeccable local review captures
+.impeccable/review/

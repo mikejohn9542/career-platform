@@ -120,7 +120,7 @@ export const profileContent: ProfileContent = {
     fileName: "michael-johnson-resume.pdf",
     publishedAt: "2026-10-01T00:00:00.000Z",
     status: "published",
-    pdfUrl: "https://www.linkedin.com/in/michael-johnson-285334331",
+    pdfUrl: "https://michaeljportfolio.me/michael-johnson-resume.pdf",
     summary: "Resume highlights data analytics, mortgage lending operations, and full-stack development.",
   },
   contact: {
