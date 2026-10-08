@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run content:snapshot && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
@@ -15,19 +15,18 @@
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
-    "better-sqlite3": "^11.10.0",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.45.4",
     "next": "15.5.27",
     "pg": "^8.23.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "tsx": "^4.23.15",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
     "@playwright/test": "1.64.0",
-    "@types/better-sqlite3": "^7.6.12",
     "@types/node": "20.14.12",
     "@types/pg": "^8.23.1",
     "@types/react": "19.1.0",
@@ -35,7 +34,6 @@
     "drizzle-kit": "^0.31.4",
     "eslint": "8.57.0",
     "eslint-config-next": "15.5.27",
-    "tsx": "^4.20.4",
     "typescript": "5.5.4",
     "vitest": "2.1.9"
   },

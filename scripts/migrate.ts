@@ -1,15 +1,18 @@
 import "dotenv/config";
 import { createDbClient, migrateDb } from "@/db/client";
 
-const databasePath = process.env.DATABASE_PATH ?? "data/career-platform.sqlite";
-const client = createDbClient(databasePath);
-
-async function main(): Promise<void> {
-  try {
-    await migrateDb(client);
-  } finally {
-    await client.close();
-  }
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error("DATABASE_URL is not set.");
+  process.exit(1);
 }
 
-void main();
+const client = createDbClient(connectionString);
+
+migrateDb(client)
+  .then(() => console.log("Migrations applied."))
+  .catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(() => client.close());

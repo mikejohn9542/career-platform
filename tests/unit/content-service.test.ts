@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createContentService } from "@/lib/content-service";
+import { createContentService, createDefaultDatabaseProvider } from "@/lib/content-service";
 import { makeFixtureContent, makeFixtureProject } from "./fixtures";
 
 describe("content service", () => {
@@ -78,5 +78,17 @@ describe("content service", () => {
       snapshot: null,
       logger: { warn: vi.fn() },
     })).toThrow(/snapshot/i);
+  });
+});
+
+describe("createDefaultDatabaseProvider", () => {
+  it("returns undefined without DATABASE_URL, so the service serves the snapshot", () => {
+    expect(createDefaultDatabaseProvider({})).toBeUndefined();
+  });
+
+  it("creates a provider when DATABASE_URL is set, without connecting yet", () => {
+    const provider = createDefaultDatabaseProvider({ DATABASE_URL: "postgresql://user:pass@127.0.0.1:1/none" });
+    expect(provider).toBeDefined();
+    expect(typeof provider?.getSiteContent).toBe("function");
   });
 });

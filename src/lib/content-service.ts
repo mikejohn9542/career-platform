@@ -1,8 +1,7 @@
 import fs from "node:fs";
-import path from "node:path";
 import { profileContentSchema, type ProfileContent, type ProjectContent } from "@/content/schema";
 import { getGeneratedSnapshotPath } from "@/content/load";
-import { createDbClient, migrateDb } from "@/db/client";
+import { createDbClient } from "@/db/client";
 import { getPublishedProfile, getPublishedProject } from "@/db/repository";
 import { createLogger, type Logger } from "./logger";
 
@@ -32,25 +31,16 @@ function resolveSnapshot(snapshot: ProfileContent | null | undefined): ProfileCo
   return snapshot;
 }
 
-function createDefaultDatabaseProvider(): DatabaseContentProvider | undefined {
-  const databasePath = path.resolve(process.cwd(), process.env.DATABASE_PATH ?? "data/career-platform.sqlite");
+// Migrations run once per deploy (Railway pre-deploy), never per request.
+export function createDefaultDatabaseProvider(env: Readonly<Record<string, string | undefined>> = process.env): DatabaseContentProvider | undefined {
+  const connectionString = env.DATABASE_URL;
+  if (!connectionString) return undefined;
 
-  try {
-    const client = createDbClient(databasePath);
-    void migrateDb(client);
-    return {
-      async getSiteContent(): Promise<ProfileContent | null> {
-        await migrateDb(client);
-        return getPublishedProfile(client);
-      },
-      async getProjectBySlug(slug: string): Promise<ProjectContent | null> {
-        await migrateDb(client);
-        return getPublishedProject(client, slug);
-      },
-    };
-  } catch {
-    return undefined;
-  }
+  const client = createDbClient(connectionString);
+  return {
+    getSiteContent: () => getPublishedProfile(client),
+    getProjectBySlug: (slug) => getPublishedProject(client, slug),
+  };
 }
 
 export function createContentService({

@@ -1,18 +1,26 @@
 import "dotenv/config";
-import { createDbClient, migrateDb } from "@/db/client";
 import { loadProfileContent } from "@/content/load";
+import { createDbClient, migrateDb } from "@/db/client";
 import { seedProfile } from "@/db/repository";
 
-const databasePath = process.env.DATABASE_PATH ?? "data/career-platform.sqlite";
-const client = createDbClient(databasePath);
-
-async function main(): Promise<void> {
-  try {
-    await migrateDb(client);
-    await seedProfile(client, loadProfileContent());
-  } finally {
-    await client.close();
-  }
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error("DATABASE_URL is not set.");
+  process.exit(1);
 }
 
-void main();
+const client = createDbClient(connectionString);
+
+async function main(): Promise<void> {
+  const content = loadProfileContent();
+  await migrateDb(client);
+  await seedProfile(client, content);
+  console.log(`Seeded profile content for ${content.profile.name}.`);
+}
+
+main()
+  .catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(() => client.close());
