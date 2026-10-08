@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { getPublishedProfile, getPublishedProject, seedProfile } from "@/db/repository";
+import { projects } from "@/db/schema";
 import { createTestDatabase, makeFixtureContent } from "./helpers";
 
 describe("content repository", () => {
@@ -44,7 +46,8 @@ describe("content repository", () => {
 
       expect(await getPublishedProject(db, "draft-project")).toBeNull();
       expect(await getPublishedProfile(db)).toEqual(updated);
-      expect(db.sqlite.prepare("SELECT COUNT(*) AS count FROM projects").get()).toEqual({ count: 1 });
+      const [{ count }] = await db.db.select({ count: sql<number>`count(*)::int` }).from(projects);
+      expect(count).toBe(1);
     } finally {
       await db.close();
     }

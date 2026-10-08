@@ -1,32 +1,30 @@
-import Database from "better-sqlite3";
-import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import fs from "node:fs";
 import path from "node:path";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
+import { Pool } from "pg";
 import { schema } from "./schema";
 
+export type Database = PgDatabase<PgQueryResultHKT, typeof schema>;
+
 export type DbClient = {
-  db: BetterSQLite3Database<typeof schema>;
-  sqlite: Database.Database;
-  close: () => void | Promise<void>;
+  db: Database;
+  close: () => Promise<void>;
 };
 
-export function createDbClient(databasePath: string): DbClient {
-  if (databasePath !== ":memory:") {
-    fs.mkdirSync(path.dirname(path.resolve(databasePath)), { recursive: true });
-  }
-  const sqlite = new Database(databasePath);
-  sqlite.pragma("foreign_keys = ON");
-  const db = drizzle(sqlite, { schema });
+export const MIGRATIONS_FOLDER = path.resolve(process.cwd(), "drizzle");
+
+// The pool connects lazily, on the first query.
+export function createDbClient(connectionString: string): DbClient {
+  const pool = new Pool({ connectionString, max: 5 });
+  const db = drizzle(pool, { schema });
   return {
-    db,
-    sqlite,
-    close: () => {
-      sqlite.close();
-    },
+    db: db as unknown as Database,
+    close: () => pool.end(),
   };
 }
 
-export async function migrateDb(client: DbClient, migrationsFolder = path.resolve(process.cwd(), "drizzle")): Promise<void> {
-  migrate(client.db, { migrationsFolder });
+export async function migrateDb(client: DbClient, migrationsFolder = MIGRATIONS_FOLDER): Promise<void> {
+  // node-postgres and PGlite share the pg-core dialect, so one migrator call covers both clients.
+  await migrate(client.db as Parameters<typeof migrate>[0], { migrationsFolder });
 }

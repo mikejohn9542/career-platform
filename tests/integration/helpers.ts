@@ -1,19 +1,19 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
-import { createDbClient, migrateDb, type DbClient } from "@/db/client";
+import { PGlite } from "@electric-sql/pglite";
+import { drizzle } from "drizzle-orm/pglite";
+import { migrate } from "drizzle-orm/pglite/migrator";
+import { MIGRATIONS_FOLDER, type Database, type DbClient } from "@/db/client";
+import { schema } from "@/db/schema";
 import type { ProfileContent } from "@/content/schema";
 
+// A real Postgres engine in-process: no Docker, no network, fresh per test.
 export async function createTestDatabase(): Promise<DbClient> {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "career-platform-"));
-  const db = createDbClient(path.join(directory, "test.sqlite"));
-  await migrateDb(db);
-  const originalClose = db.close;
-  db.close = () => {
-    originalClose();
-    return rm(directory, { recursive: true, force: true });
+  const pglite = new PGlite();
+  const db = drizzle(pglite, { schema });
+  await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+  return {
+    db: db as unknown as Database,
+    close: () => pglite.close(),
   };
-  return db;
 }
 
 export function makeFixtureContent(): ProfileContent {
