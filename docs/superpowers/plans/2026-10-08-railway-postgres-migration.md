@@ -4,11 +4,11 @@
 
 **Goal:** Serve michaeljportfolio.me from the existing Railway web service, with content stored in the existing Railway PostgreSQL database instead of SQLite on the Azure VM.
 
-**Architecture:** Switch the Drizzle schema from `sqlite-core` to `pg-core`, use `pg` (node-postgres) in production and PGlite (in-process Postgres) in tests, and keep the repository's async interface unchanged so the page and content service don't move. Railway runs migrations and the seed in a pre-deploy step before each release, so `src/content/profile.ts` stays the single source of content. The content snapshot is generated during the build, so the site still renders if Postgres is unreachable.
+**Architecture:** Switch the Drizzle schema from `sqlite-core` to `pg-core`, use `pg` (node-postgres) in production and PGlite (in-process Postgres) in tests, and keep the repository's async interface unchanged so the page and content service don't move. Railway runs **migrations only** in a pre-deploy step; the VM's existing rows are moved once, by a script that reads a verified SQLite backup and writes them to Postgres with their original ids. The content snapshot is generated during the build, so the site still renders if Postgres is unreachable or still empty. Next.js trusts Railway's `X-Forwarded-Proto` header by default; a small middleware uses it to redirect `http://` to `https://`.
 
 **Tech Stack:** Next.js 15.5.27, TypeScript, Drizzle ORM 0.45 (`drizzle-orm/node-postgres`, `drizzle-orm/pglite`), drizzle-kit 0.31, `pg` 8, `@electric-sql/pglite` 0.5, Vitest 2.1.9, Railway (Railpack builder, `railway.json`), Cloudflare DNS.
 
-**Spec:** The user's request of 2026-10-08 ("plan its move to Railway and PostgreSQL. The Railway project already exists with Postgres and a web service"), the class guide *Secure your site with HTTPS* ("When we move to Railway" + "Before Thursday" items), and *Improve your site's design before Railway* (Railway auto-deploy requirement). Background: `docs/superpowers/plans/2026-10-01-operate-the-vm.md`.
+**Spec:** The user's requests of 2026-10-08 (including the revision: "the current rows should move from the VM and the seed stays out of deploy … the app will sit behind Railway's proxy, so [the server] has to trust the forwarded protocol header. Back up the database on the VM and confirm you can read the backup") and the original request ("plan its move to Railway and PostgreSQL. The Railway project already exists with Postgres and a web service"), the class guide *Secure your site with HTTPS* ("When we move to Railway" + "Before Thursday" items), and *Improve your site's design before Railway* (Railway auto-deploy requirement). Background: `docs/superpowers/plans/2026-10-01-operate-the-vm.md`.
 
 ## What exists today (inspected 2026-10-08)
 
@@ -30,7 +30,8 @@
 
 - Node.js 22 (VM and laptop run 22.x). `next` stays pinned at `15.5.27`; `drizzle-orm` stays at `^0.45.4` (the version without the SQL-injection advisory).
 - `npm audit --omit=dev` must stay at 0 vulnerabilities (Railway blocks deploys on vulnerable packages).
-- `src/content/profile.ts` is the only content source. Postgres is filled from it by `npm run db:seed`; nobody edits rows by hand.
+- **Revision:** production content is the VM's current rows, moved once from the verified backup (Task 5). `npm run db:seed` (from `profile.ts`) is for local dev and tests only and is **never** part of a deploy.
+- The VM backup is `~/backups/career-platform-20261008T2154Z.sqlite` on the VM and `data/backups/career-platform-20261008T2154Z.sqlite` on the laptop (git-ignored), SHA-256 `5a094c62d2fd5633…77c2`.
 - No secrets in git. `.env` stays git-ignored. The Postgres password appears only in Railway variables and the local `.env`.
 - The phone number is never rendered on the page (`tests/unit/home-page.test.ts` already pins this).
 - Keep the repository API exactly: `seedProfile(client, content): Promise<void>`, `getPublishedProfile(client): Promise<ProfileContent | null>`, `getPublishedProject(client, slug): Promise<ProjectContent | null>`.
@@ -46,11 +47,11 @@ cd "/c/Users/mjjoh/OneDrive/Desktop/ISBA Projects/career-platform"
 
 ## Review Focus
 
-- **`DATABASE_URL` missing on the Railway web service:** the page must still render from the built snapshot and log `content_service_fallback`, not return 500. (Task 2, test `createDefaultDatabaseProvider returns undefined without DATABASE_URL`, plus Task 3 check.)
-- **Postgres unreachable or wrong password at runtime:** same behavior as above. The existing `content-service.test.ts` "serves the snapshot when the database read fails" pins it; Task 3 verifies it live by checking the logs.
-- **Re-deploying seeds again:** the seed must replace rows, not duplicate them. The existing reseed test keeps its row-count check, rewritten for Postgres in Task 1.
-- **A pre-deploy migration fails:** Railway must not switch traffic to the new release; the previous one keeps serving. Task 3 Step 6 checks the deploy log shows migrate and seed succeeded before the healthcheck.
-- **Identity columns after reseed:** `generatedAlwaysAsIdentity` ids keep climbing across reseeds. That's fine because ids are never shown or linked, but tests must not assert specific ids. Task 1 tests compare content, not ids.
+- **Postgres hangs or drops connections:** a silent network drop must fail within seconds and fall back to the snapshot, and an idle-connection error must never crash `next start`. (Task 3 tests: pool `error` listener, timeouts.)
+- **Deploy before the rows are moved:** tables exist but are empty, so the page must render from the snapshot and log `content_service_fallback` with reason `empty`, not render a blank page. (Task 3 test.)
+- **Row move run twice:** it must refuse to write into a database that already has content unless `--replace` is passed, and with `--replace` it must leave exactly one copy. (Task 5 tests.)
+- **New rows after the move:** identity sequences must continue after the moved ids, so a later insert doesn't collide with id 1, 2, … (Task 5 test.)
+- **HTTP behind the proxy:** `X-Forwarded-Proto: http` on the public hosts must redirect to `https://`, while Railway's healthcheck host and `localhost` must not be redirected (or every deploy fails its healthcheck). (Task 4 tests.)
 
 ---
 
@@ -75,7 +76,7 @@ cd "/c/Users/mjjoh/OneDrive/Desktop/ISBA Projects/career-platform"
 
 ---
 
-### Task 1: Postgres data layer
+### Task 1: Postgres data layer — DONE (`f1a6dc6`)
 
 **What this is (for a beginner):** Drizzle describes tables in TypeScript. SQLite and Postgres need different table helpers (`sqliteTable` vs `pgTable`) and different drivers. Postgres drivers are asynchronous, so every query gets `await`. The functions the rest of the app calls keep their names and return types.
 
@@ -625,7 +626,7 @@ git commit -m "feat(db): move the data layer from SQLite to PostgreSQL"
 
 ---
 
-### Task 2: Runtime, scripts, and build on `DATABASE_URL`
+### Task 2: Runtime, scripts, and build on `DATABASE_URL` — DONE (`bcbbd5f`)
 
 **What this is:** The app finds its database through one setting, `DATABASE_URL`. Migrations move out of the request path into scripts that run once per deploy. The build writes the fallback snapshot so the page renders even without a database.
 
@@ -811,112 +812,597 @@ git commit -m "feat: read content from DATABASE_URL and build the fallback snaps
 
 ---
 
-### Task 3: Railway config, first Postgres deploy, and verification
+### Backup of the VM database — DONE (2026-10-08 21:54 UTC)
 
-**What this is:** `railway.json` tells Railway how to build, what to run **before** switching traffic to a new release (migrate + seed), how to start the app, and which URL to health-check. A *reference variable* lets the web service use the Postgres service's private address without copying the password.
-
-**Where it runs:** laptop (file + push), **Railway dashboard (user)**, laptop (checks). **How we check it:** the deploy log shows migrate and seed, the Railway URL serves the page from the database (no fallback warning), and a read-only query from the laptop shows the seeded rows.
-
-**Files:**
-- Create: `railway.json`
-- Modify: `README.md` ("SQLite database" section)
-
-**Interfaces:**
-- Consumes (Task 2): npm scripts `build`, `start`, `db:migrate`, `db:seed`; env `DATABASE_URL`.
-
-- [ ] **Step 1: Add `railway.json`**
-
-```json
-{
-  "$schema": "https://railway.com/railway.schema.json",
-  "build": {
-    "builder": "RAILPACK",
-    "buildCommand": "npm run build"
-  },
-  "deploy": {
-    "preDeployCommand": ["npm run db:migrate && npm run db:seed"],
-    "startCommand": "npm run start",
-    "healthcheckPath": "/",
-    "healthcheckTimeout": 120,
-    "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 5
-  }
-}
-```
-
-`next start` listens on `0.0.0.0` and reads Railway's `PORT`, so no port flag is needed.
-
-- [ ] **Step 2: Update the README**
-
-Replace the "SQLite database" section of `README.md` with:
-
-```markdown
-## Database (PostgreSQL)
-
-The app reads content from PostgreSQL via `DATABASE_URL`. Without it, pages render from
-`src/generated/profile-snapshot.json`, which `npm run build` generates from `src/content/profile.ts`.
-
-- Generate a migration after schema changes: `npx drizzle-kit generate --name <change>`
-- Apply migrations: `npm run db:migrate`
-- Replace the database content with `src/content/profile.ts`: `npm run db:seed` (idempotent)
-
-On Railway, `railway.json` runs `db:migrate` and `db:seed` before each release, and the web
-service's `DATABASE_URL` references the Postgres service.
-```
-
-Leave every other README section unchanged.
-
-- [ ] **Step 3: Commit and push (triggers a Railway deploy)**
-
-```bash
-git add railway.json README.md
-git commit -m "chore: add Railway build and pre-deploy config"
-git push origin main
-```
-
-- [ ] **Step 4 (user, Railway dashboard): connect the web service to Postgres**
-
-1. Open the Railway project → the **web** service → **Variables**.
-2. Add a variable `DATABASE_URL` with the value `${{Postgres.DATABASE_URL}}` (type `${{` and pick the Postgres service's `DATABASE_URL`; use the exact service name shown in your project if it isn't `Postgres`). This uses Railway's private network address, not the public `zephyr.proxy.rlwy.net` one.
-3. Remove `DATABASE_PATH` if it exists on the web service.
-4. Save; Railway redeploys. Under **Settings → Networking**, select **Generate Domain** if the service has no `*.up.railway.app` URL yet, and note it.
-
-- [ ] **Step 5 (laptop): read-only check that the seed reached Postgres**
-
-Uses `RAILWAY_DATABASE_URL` from the local `.env` (public proxy URL). It only reads.
-
-```bash
-node -e '
-require("dotenv").config();
-const { Client } = require("pg");
-const c = new Client({ connectionString: process.env.RAILWAY_DATABASE_URL });
-c.connect()
-  .then(() => c.query("select (select name from profiles where id = 1) as name, (select count(*) from projects)::int as projects, (select count(*) from experiences)::int as experiences, (select pdf_url from resume_metadata where id = 1) as pdf"))
-  .then((r) => console.log(r.rows[0]))
-  .finally(() => c.end());'
-```
-
-Expected: `{ name: 'Michael Johnson', projects: 2, experiences: 2, pdf: 'https://michaeljportfolio.me/michael-johnson-resume.pdf' }`.
-
-- [ ] **Step 6 (user shares, agent reads): deploy log and live checks**
-
-In Railway → web service → **Deployments** → latest → **View logs**, confirm in order: build succeeded (`Wrote profile snapshot`, route table), pre-deploy printed `Migrations applied.` and `Seeded profile content for Michael Johnson.`, the healthcheck passed. Then on the laptop (replace `APP` with the `*.up.railway.app` host from Step 4):
-
-```bash
-curl -s -o /dev/null -w "%{http_code}\n" https://APP/
-curl -s https://APP/ | grep -o "A 3.86 GPA at Loyola Marymount University" | head -1
-curl -s -o /dev/null -w "%{http_code} %{content_type}\n" https://APP/michael-johnson-resume.pdf
-```
-
-Expected: `200`, the Education title (proves DB-backed rendering of current content), `200 application/pdf`. In the runtime logs, there must be **no** `content_service_fallback` line after a page load.
-
-- [ ] **Step 7: Record results**
-
-Write what ran and what each check showed under Task 3 in this plan file, then commit it with `git commit -m "docs: record Railway deploy results"`.
+- **Where:** VM, then laptop. **What ran:** `sqlite3 ~/career-platform/data/career-platform.sqlite ".backup '~/backups/career-platform-20261008T2154Z.sqlite'"` (SQLite's online backup, safe while the app reads), `chmod 600`, then `scp` to `data/backups/` on the laptop.
+- **Checks (all read-only, backup opened with `mode=ro`):** `PRAGMA integrity_check` → `ok`; `PRAGMA foreign_key_check` → 0 violations; row counts identical to the live file for all 14 tables (profiles 1, experiences 2, experience_highlights 8, education 1, skill_groups 3, skill_items 19, projects 2, project_technologies 10, project_highlights 5, project_links 2, project_media 0, resume_metadata 1, contacts 1, __drizzle_migrations 1); full `.dump` of backup and live file **identical**; sample read `Michael Johnson | Information Systems & Business Analytics student at Loyola Marymount University`; laptop copy SHA-256 equals the VM copy (`5a094c62…77c2`).
+- **Note:** the VM rows differ from today's `profile.ts` in at least `resume_metadata.pdf_url` (`https://www.linkedin.com/in/michael-johnson-285334331`). Moving the rows keeps that value; the page's résumé button still links the PDF because it falls back to `/michael-johnson-resume.pdf` for non-PDF URLs.
 
 ---
 
-### Task 4: Move michaeljportfolio.me to Railway and retire the VM
+### Task 3: Harden the Postgres client (review findings)
+
+**What this is:** The whole-branch review found two ways Postgres trouble could take the site down instead of falling back: an idle connection that drops emits an `error` event that crashes Node when nothing listens, and with no timeouts a silent network drop makes requests wait about two minutes. It also found that an empty database falls back silently.
+
+**Where it runs:** laptop. **How we check it:** new unit tests, then the full suite.
+
+**Files:**
+- Modify: `src/db/client.ts`, `src/lib/content-service.ts` (the `getSiteContent` database branch), `.env.example`
+- Test: `tests/unit/db-client.test.ts` (new), `tests/unit/content-service.test.ts`
+
+**Interfaces:**
+- Produces: `DbClient` gains `pool?: Pool` (node-postgres only; the PGlite test client leaves it unset); `POOL_OPTIONS`.
+
+- [ ] **Step 1: Write the failing tests**
+
+Create `tests/unit/db-client.test.ts`:
+
+```ts
+import { describe, expect, it } from "vitest";
+import { createDbClient } from "@/db/client";
+
+const UNREACHABLE = "postgresql://user:pass@127.0.0.1:1/none";
+
+describe("createDbClient", () => {
+  it("survives an idle-connection error instead of crashing the server", async () => {
+    const client = createDbClient(UNREACHABLE);
+    expect(() => client.pool?.emit("error", new Error("Connection terminated unexpectedly"))).not.toThrow();
+    await client.close();
+  });
+
+  it("gives up on an unreachable database within seconds", async () => {
+    const client = createDbClient(UNREACHABLE);
+    const options = (client.pool as unknown as { options: Record<string, unknown> }).options;
+    expect(options.connectionTimeoutMillis).toBe(5000);
+    expect(options.query_timeout).toBe(10000);
+    await client.close();
+  });
+});
+```
+
+Append inside the existing `describe("content service", …)` block of `tests/unit/content-service.test.ts`:
+
+```ts
+  it("logs a fallback when the database is reachable but empty", async () => {
+    const content = makeFixtureContent();
+    const warn = vi.fn();
+    const service = createContentService({
+      database: { getSiteContent: vi.fn().mockResolvedValue(null), getProjectBySlug: vi.fn() },
+      snapshot: content,
+      logger: { warn },
+    });
+
+    await expect(service.getSiteContent()).resolves.toEqual({ content, source: "snapshot" });
+    expect(warn).toHaveBeenCalledWith("content_service_fallback", expect.objectContaining({ reason: "empty" }));
+  });
+```
+
+- [ ] **Step 2: Run them to see them fail**
+
+Run: `npx vitest run tests/unit/db-client.test.ts tests/unit/content-service.test.ts`
+Expected: FAIL. `client.pool` is undefined (so the options test fails reading `options`), and `warn` is never called for an empty database.
+
+- [ ] **Step 3: Implement**
+
+In `src/db/client.ts`, add `import { createLogger } from "@/lib/logger";`, add `pool?: Pool;` to `DbClient`, and replace `createDbClient` with:
+
+```ts
+export const POOL_OPTIONS = {
+  max: 5,
+  connectionTimeoutMillis: 5_000,
+  query_timeout: 10_000,
+  idleTimeoutMillis: 30_000,
+};
+
+// The pool connects lazily, on the first query.
+export function createDbClient(connectionString: string): DbClient {
+  const pool = new Pool({ connectionString, ...POOL_OPTIONS });
+  // An idle client that loses its connection emits "error"; without a listener Node would crash the server.
+  const log = createLogger();
+  pool.on("error", (error) => log.warn("pg_pool_error", { reason: error.message }));
+  const db = drizzle(pool, { schema });
+  return {
+    db: db as unknown as Database,
+    close: () => pool.end(),
+    pool,
+  };
+}
+```
+
+In `src/lib/content-service.ts`, inside `getSiteContent`, change
+
+```ts
+          const content = await database.getSiteContent();
+          if (content) return { content, source: "database" };
+```
+
+to
+
+```ts
+          const content = await database.getSiteContent();
+          if (content) return { content, source: "database" };
+          log.warn("content_service_fallback", { operation: "getSiteContent", source: "database", reason: "empty" });
+```
+
+In `.env.example`, comment out the last line so copying the file doesn't silently enable a database: `# DATABASE_URL=postgresql://postgres:password@localhost:5432/career_platform`.
+
+- [ ] **Step 4: Run the tests to see them pass, then the full suite**
+
+Run: `npx vitest run tests/unit/db-client.test.ts tests/unit/content-service.test.ts` → PASS. Then `npx tsc --noEmit && npx vitest run` → tsc clean, 19 tests pass.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/db/client.ts src/lib/content-service.ts .env.example tests/unit/db-client.test.ts tests/unit/content-service.test.ts
+git commit -m "fix(db): keep the site up when Postgres drops or hangs"
+```
+
+---
+
+### Task 4: Migrations-only deploy and HTTPS behind Railway's proxy
+
+**What this is:** Commit `43be723` added `railway.json` with `db:migrate && db:seed` in pre-deploy. Per the revision, deploys run **migrations only**, which also removes the `&&` the review flagged. Railway's edge terminates TLS and forwards plain HTTP to the app with `X-Forwarded-Proto`. Next.js trusts that header by default (`next/dist/server/base-server.js` only fills it in when it's missing, and `next-server.js` derives `https` from it), so there is no Uvicorn-style `--proxy-headers` switch to turn on. The middleware below is the part of the app that relies on the header: it redirects `http://` to `https://` on the public hosts, as nginx did on the VM.
+
+**Where it runs:** laptop. **How we check it:** middleware unit tests, the full suite, and the build.
+
+**Files:**
+- Modify: `railway.json`, `README.md` (Database section)
+- Create: `src/middleware.ts`
+- Test: `tests/unit/middleware.test.ts`
+
+**Interfaces:**
+- Produces: `middleware(request: NextRequest): NextResponse` and `config.matcher` in `src/middleware.ts`.
+
+- [ ] **Step 1: Write the failing test**
+
+Create `tests/unit/middleware.test.ts`:
+
+```ts
+import { NextRequest } from "next/server";
+import { describe, expect, it } from "vitest";
+import { middleware } from "@/middleware";
+
+function request(url: string, headers: Record<string, string>): NextRequest {
+  return new NextRequest(url, { headers });
+}
+
+describe("middleware", () => {
+  it("redirects plain HTTP on the public domain to HTTPS, keeping the path", () => {
+    const response = middleware(request("http://michaeljportfolio.me/projects?x=1", { host: "michaeljportfolio.me", "x-forwarded-proto": "http" }));
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://michaeljportfolio.me/projects?x=1");
+  });
+
+  it("lets HTTPS requests through", () => {
+    const response = middleware(request("http://michaeljportfolio.me/", { host: "michaeljportfolio.me", "x-forwarded-proto": "https" }));
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("never redirects Railway's healthcheck or localhost", () => {
+    for (const host of ["healthcheck.railway.app", "localhost:3000"]) {
+      const response = middleware(request(`http://${host}/`, { host, "x-forwarded-proto": "http" }));
+      expect(response.headers.get("x-middleware-next")).toBe("1");
+    }
+  });
+});
+```
+
+- [ ] **Step 2: Run it to see it fail**
+
+Run: `npx vitest run tests/unit/middleware.test.ts`
+Expected: FAIL, "Failed to resolve import "@/middleware"".
+
+- [ ] **Step 3: Implement the middleware**
+
+Create `src/middleware.ts`:
+
+```ts
+import { NextResponse, type NextRequest } from "next/server";
+
+// Hosts served through Railway's proxy, which terminates TLS and sets X-Forwarded-Proto.
+// Railway's healthcheck (healthcheck.railway.app) and localhost are deliberately not listed.
+const PUBLIC_HOST = /^(www\.)?michaeljportfolio\.me$|\.up\.railway\.app$/i;
+
+function firstValue(header: string | null): string {
+  return (header ?? "").split(",")[0].trim().toLowerCase();
+}
+
+export function middleware(request: NextRequest): NextResponse {
+  const protocol = firstValue(request.headers.get("x-forwarded-proto"));
+  const host = firstValue(request.headers.get("x-forwarded-host") ?? request.headers.get("host")).split(":")[0];
+
+  if (protocol === "http" && PUBLIC_HOST.test(host)) {
+    const target = new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, `https://${host}`);
+    return NextResponse.redirect(target, 308);
+  }
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: "/((?!_next/static|_next/image|favicon.ico).*)",
+};
+```
+
+- [ ] **Step 4: Run it to see it pass**
+
+Run: `npx vitest run tests/unit/middleware.test.ts`
+Expected: PASS, 3/3.
+
+- [ ] **Step 5: Run migrations only on deploy**
+
+In `railway.json`, change `"preDeployCommand": ["npm run db:migrate && npm run db:seed"],` to `"preDeployCommand": ["npm run db:migrate"],`.
+
+In `README.md`, replace the sentence starting "On Railway, `railway.json` runs" with:
+
+```markdown
+On Railway, `railway.json` runs `db:migrate` (never `db:seed`) before each release, and the web
+service's `DATABASE_URL` references the Postgres service. Production rows were moved once from the
+VM's SQLite backup with `npm run db:move-rows` (see the migration plan). `db:seed` is for local
+development only.
+```
+
+- [ ] **Step 6: Full verification and commit**
+
+```bash
+npx tsc --noEmit && npm run -s lint && npx vitest run && rm -rf .next && npm run -s build
+git add src/middleware.ts tests/unit/middleware.test.ts railway.json README.md
+git commit -m "feat: migrations-only deploys and HTTPS redirect behind Railway's proxy"
+```
+
+Expected: tsc and lint clean, 22 tests pass, the build route table lists `ƒ Middleware`.
+
+---
+
+### Task 5: Move the VM's rows into Postgres
+
+**What this is:** A one-time script reads the verified SQLite backup with Node's built-in `node:sqlite` (no extra dependency) and writes every row into Postgres with its **original id**. Identity columns need `OVERRIDING SYSTEM VALUE` to accept explicit ids, and their sequences are then moved past the highest id so later inserts don't collide. It refuses to touch a database that already has content unless `--replace` is passed, runs in one transaction, and compares every column of every row afterwards.
+
+**Where it runs:** laptop (tests now; the real run is Task 6). **How we check it:** integration tests that build a small SQLite file with the VM's original schema and import it into PGlite.
+
+**Files:**
+- Create: `src/db/sqlite-import.ts`, `scripts/move-rows-from-sqlite.ts`, `tests/fixtures/sqlite-schema.sql`, `tests/integration/sqlite-fixture.ts`, `tests/integration/sqlite-import.test.ts`
+- Modify: `package.json` (script `db:move-rows`)
+
+**Interfaces:**
+- Consumes: `Database`, `createDbClient` (Tasks 1 and 3), `getPublishedProfile` (Task 1), test helper `createTestDatabase()`.
+- Produces: `TABLES`, `TableRows`, `readSqliteRows(file: string): TableRows`, `importRows(db: Database, rows: TableRows, options?: { replace?: boolean }): Promise<void>`, `compareRows(db: Database, expected: TableRows): Promise<{ table: TableName; expected: number; actual: number; identical: boolean }[]>`; npm script `db:move-rows`.
+
+- [ ] **Step 1: Add the fixture schema and a SQLite fixture builder**
+
+```bash
+mkdir -p tests/fixtures
+git show 3ec9e9c:drizzle/0000_certain_odin.sql > tests/fixtures/sqlite-schema.sql
+```
+
+This is the VM's exact SQLite schema (the migration the VM ran). Create `tests/integration/sqlite-fixture.ts`:
+
+```ts
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+type SqliteDatabase = { exec(sql: string): void; close(): void };
+type SqliteModule = { DatabaseSync: new (file: string) => SqliteDatabase };
+
+const TS = "2026-01-01T00:00:00.000Z";
+
+// Builds a SQLite file shaped like the VM's database, with non-sequential ids.
+export function makeSqliteFixture(): { file: string; cleanup: () => void } {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "sqlite-fixture-"));
+  const file = path.join(directory, "vm.sqlite");
+  const { DatabaseSync } = (process as unknown as { getBuiltinModule(id: string): SqliteModule }).getBuiltinModule("node:sqlite");
+  const db = new DatabaseSync(file);
+  db.exec(fs.readFileSync(path.resolve(process.cwd(), "tests/fixtures/sqlite-schema.sql"), "utf8"));
+  db.exec(`
+    INSERT INTO profiles (id, name, headline, summary, location, pronouns, created_at, updated_at)
+      VALUES (1, 'Test Person', 'Product engineer', 'Builds useful software.', 'Remote', 'they/them', '${TS}', '${TS}');
+    INSERT INTO experiences (id, profile_id, sort_order, company, role, location, start_date, end_date, current, summary, created_at, updated_at)
+      VALUES (7, 1, 0, 'Example Co', 'Engineer', 'Remote', '2024-01', NULL, 1, 'Built products.', '${TS}', '${TS}');
+    INSERT INTO experience_highlights (id, experience_id, sort_order, value) VALUES (11, 7, 0, 'Shipped features.');
+    INSERT INTO education (id, profile_id, sort_order, school, degree, field, start_date, end_date, summary, created_at, updated_at)
+      VALUES (3, 1, 0, 'Example University', 'B.S.', 'Computer Science', '2020-09', '2024-06', 'Studied software.', '${TS}', '${TS}');
+    INSERT INTO skill_groups (id, profile_id, sort_order, name) VALUES (5, 1, 0, 'Languages');
+    INSERT INTO skill_items (id, skill_group_id, sort_order, value) VALUES (21, 5, 0, 'TypeScript'), (22, 5, 1, 'SQL');
+    INSERT INTO projects (id, profile_id, slug, title, summary, description, status, sort_order, created_at, updated_at)
+      VALUES (9, 1, 'published-project', 'Published project', 'A published project.', 'A detailed published project.', 'published', 0, '${TS}', '${TS}');
+    INSERT INTO project_technologies (id, project_id, sort_order, value) VALUES (31, 9, 0, 'TypeScript');
+    INSERT INTO project_highlights (id, project_id, sort_order, value) VALUES (41, 9, 0, 'Delivered value.');
+    INSERT INTO project_links (id, project_id, sort_order, label, url) VALUES (51, 9, 0, 'Demo', 'https://example.com/published');
+    INSERT INTO resume_metadata (id, profile_id, file_name, published_at, status, pdf_url, summary)
+      VALUES (1, 1, 'resume.pdf', '2026-09-15T00:00:00.000Z', 'published', 'https://example.com/resume.pdf', 'A resume.');
+    INSERT INTO contacts (id, profile_id, email, phone, linkedin, github, website, location)
+      VALUES (1, 1, 'test@example.com', NULL, 'https://linkedin.com/in/test', 'https://github.com/test', NULL, 'Remote');
+  `);
+  db.close();
+  return { file, cleanup: () => fs.rmSync(directory, { recursive: true, force: true }) };
+}
+```
+
+- [ ] **Step 2: Write the failing tests**
+
+Create `tests/integration/sqlite-import.test.ts`:
+
+```ts
+import { eq } from "drizzle-orm";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { getPublishedProfile } from "@/db/repository";
+import { experienceHighlights, experiences } from "@/db/schema";
+import { compareRows, importRows, readSqliteRows } from "@/db/sqlite-import";
+import { createTestDatabase } from "./helpers";
+import { makeSqliteFixture } from "./sqlite-fixture";
+
+describe("moving rows from the VM's SQLite backup", () => {
+  let fixture: ReturnType<typeof makeSqliteFixture>;
+  beforeEach(() => {
+    fixture = makeSqliteFixture();
+  });
+  afterEach(() => fixture.cleanup());
+
+  it("copies every row with its original id and the page reads the same profile", async () => {
+    const db = await createTestDatabase();
+    try {
+      const rows = readSqliteRows(fixture.file);
+      await importRows(db.db, rows);
+
+      const report = await compareRows(db.db, rows);
+      expect(report.every((entry) => entry.identical)).toBe(true);
+      const [experience] = await db.db.select().from(experiences).where(eq(experiences.id, 7));
+      expect(experience.current).toBe(true);
+      const profile = await getPublishedProfile(db);
+      expect(profile?.profile.name).toBe("Test Person");
+      expect(profile?.skills[0].items).toEqual(["TypeScript", "SQL"]);
+    } finally {
+      await db.close();
+    }
+  });
+
+  it("refuses to overwrite existing content unless replace is set", async () => {
+    const db = await createTestDatabase();
+    try {
+      const rows = readSqliteRows(fixture.file);
+      await importRows(db.db, rows);
+      await expect(importRows(db.db, rows)).rejects.toThrow(/--replace/);
+      await importRows(db.db, rows, { replace: true });
+      const report = await compareRows(db.db, rows);
+      expect(report.every((entry) => entry.identical)).toBe(true);
+    } finally {
+      await db.close();
+    }
+  });
+
+  it("continues identity sequences after the moved ids", async () => {
+    const db = await createTestDatabase();
+    try {
+      await importRows(db.db, readSqliteRows(fixture.file));
+      const [inserted] = await db.db.insert(experienceHighlights)
+        .values({ experienceId: 7, sortOrder: 1, value: "Added after the move." })
+        .returning({ id: experienceHighlights.id });
+      expect(inserted.id).toBeGreaterThan(11);
+    } finally {
+      await db.close();
+    }
+  });
+});
+```
+
+- [ ] **Step 3: Run them to see them fail**
+
+Run: `npx vitest run tests/integration/sqlite-import.test.ts`
+Expected: FAIL, "Failed to resolve import "@/db/sqlite-import"".
+
+- [ ] **Step 4: Implement the import module**
+
+Create `src/db/sqlite-import.ts`:
+
+```ts
+import { sql } from "drizzle-orm";
+import type { Database } from "./client";
+
+// Parents before children, so every foreign key already exists when its row is inserted.
+export const TABLES = [
+  "profiles",
+  "experiences",
+  "experience_highlights",
+  "education",
+  "skill_groups",
+  "skill_items",
+  "projects",
+  "project_technologies",
+  "project_highlights",
+  "project_links",
+  "project_media",
+  "resume_metadata",
+  "contacts",
+] as const;
+
+export type TableName = (typeof TABLES)[number];
+type Row = Record<string, unknown>;
+export type TableRows = Record<TableName, Row[]>;
+
+// Tables whose id is a Postgres identity column; profiles, resume_metadata and contacts use a fixed id.
+const IDENTITY_TABLES = new Set<TableName>([
+  "experiences",
+  "experience_highlights",
+  "education",
+  "skill_groups",
+  "skill_items",
+  "projects",
+  "project_technologies",
+  "project_highlights",
+  "project_links",
+  "project_media",
+]);
+
+// SQLite stores booleans as 0/1.
+const BOOLEAN_COLUMNS: Partial<Record<TableName, string[]>> = { experiences: ["current"] };
+
+type SqliteDatabase = { prepare(query: string): { all(): Row[] }; close(): void };
+type SqliteModule = { DatabaseSync: new (file: string, options?: { readOnly?: boolean }) => SqliteDatabase };
+
+export function readSqliteRows(file: string): TableRows {
+  // Node's built-in SQLite, loaded at runtime so bundlers never try to resolve it.
+  const { DatabaseSync } = (process as unknown as { getBuiltinModule(id: string): SqliteModule }).getBuiltinModule("node:sqlite");
+  const db = new DatabaseSync(file, { readOnly: true });
+  try {
+    const rows = {} as TableRows;
+    for (const table of TABLES) {
+      rows[table] = db.prepare(`SELECT * FROM "${table}" ORDER BY id`).all().map((row) => {
+        const copy: Row = { ...row };
+        for (const column of BOOLEAN_COLUMNS[table] ?? []) copy[column] = copy[column] === 1 || copy[column] === true;
+        return copy;
+      });
+    }
+    return rows;
+  } finally {
+    db.close();
+  }
+}
+
+function rowsOf(result: unknown): Row[] {
+  return (result as { rows: Row[] }).rows;
+}
+
+export async function importRows(db: Database, rows: TableRows, options: { replace?: boolean } = {}): Promise<void> {
+  await db.transaction(async (tx) => {
+    const [{ count }] = rowsOf(await tx.execute(sql`select count(*)::int as count from profiles`)) as { count: number }[];
+    if (count > 0 && !options.replace) {
+      throw new Error("The target database already has content. Re-run with --replace to overwrite it.");
+    }
+    // Every other table cascades from profiles.
+    if (count > 0) await tx.execute(sql`delete from profiles`);
+
+    for (const table of TABLES) {
+      const override = IDENTITY_TABLES.has(table) ? sql`overriding system value` : sql``;
+      for (const row of rows[table]) {
+        const columns = Object.keys(row);
+        await tx.execute(sql`insert into ${sql.identifier(table)} (${sql.join(columns.map((column) => sql.identifier(column)), sql`, `)}) ${override} values (${sql.join(columns.map((column) => sql`${row[column]}`), sql`, `)})`);
+      }
+      if (IDENTITY_TABLES.has(table)) {
+        await tx.execute(sql`select setval(pg_get_serial_sequence(${table}, 'id'), coalesce((select max(id) from ${sql.identifier(table)}), 0) + 1, false)`);
+      }
+    }
+  });
+}
+
+function sameRow(actual: Row, expected: Row): boolean {
+  const keys = Object.keys(expected);
+  return keys.length === Object.keys(actual).length && keys.every((key) => actual[key] === expected[key]);
+}
+
+export async function compareRows(db: Database, expected: TableRows): Promise<{ table: TableName; expected: number; actual: number; identical: boolean }[]> {
+  const report: { table: TableName; expected: number; actual: number; identical: boolean }[] = [];
+  for (const table of TABLES) {
+    const actual = rowsOf(await db.execute(sql`select * from ${sql.identifier(table)} order by id`));
+    const identical = actual.length === expected[table].length && actual.every((row, index) => sameRow(row, expected[table][index]));
+    report.push({ table, expected: expected[table].length, actual: actual.length, identical });
+  }
+  return report;
+}
+```
+
+- [ ] **Step 5: Run the tests to see them pass**
+
+Run: `npx vitest run tests/integration/sqlite-import.test.ts`
+Expected: PASS, 3/3. (An `ExperimentalWarning` about SQLite in the output is expected on Node 22.)
+
+- [ ] **Step 6: Add the script**
+
+Create `scripts/move-rows-from-sqlite.ts`:
+
+```ts
+import "dotenv/config";
+import { createDbClient } from "@/db/client";
+import { compareRows, importRows, readSqliteRows } from "@/db/sqlite-import";
+
+const args = process.argv.slice(2);
+const backupPath = args.find((arg) => !arg.startsWith("--"));
+const replace = args.includes("--replace");
+const connectionString = process.env.DATABASE_URL;
+
+if (!backupPath || !connectionString) {
+  console.error("Usage: DATABASE_URL=<postgres url> npm run db:move-rows -- <backup.sqlite> [--replace]");
+  process.exit(1);
+}
+
+const client = createDbClient(connectionString);
+
+async function main(): Promise<void> {
+  const rows = readSqliteRows(backupPath as string);
+  await importRows(client.db, rows, { replace });
+  const report = await compareRows(client.db, rows);
+  console.table(report);
+  if (!report.every((entry) => entry.identical)) throw new Error("Postgres rows do not match the backup.");
+  console.log("All tables match the backup.");
+}
+
+main()
+  .catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(() => client.close());
+```
+
+Add to `package.json` `scripts`: `"db:move-rows": "tsx scripts/move-rows-from-sqlite.ts",`.
+
+- [ ] **Step 7: Full verification and commit**
+
+```bash
+npx tsc --noEmit && npm run -s lint && npx vitest run
+git add src/db/sqlite-import.ts scripts/move-rows-from-sqlite.ts tests/fixtures/sqlite-schema.sql tests/integration/sqlite-fixture.ts tests/integration/sqlite-import.test.ts package.json
+git commit -m "feat(db): move the VM's SQLite rows into Postgres with their ids"
+```
+
+Expected: tsc and lint clean, 25 tests pass.
+
+---
+
+### Task 6: Deploy, move the rows, and verify on Railway
+
+**What this is:** The branch reaches Railway, the pre-deploy step creates the empty tables, the row move fills them from the backup, and the live service is checked end to end.
+
+**Where it runs:** Railway dashboard (user), laptop (merge, push, row move, checks). **Stop points:** the merge/push to `main` and the row move both need the user's go-ahead; the row move writes to the production database.
+
+- [ ] **Step 1 (user, Railway dashboard): connect the web service to Postgres**
+
+Web service → **Variables**: add `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (pick the Postgres service's variable after typing `${{`). Remove `DATABASE_PATH` if present. **Settings → Networking → Generate Domain** if there's no `*.up.railway.app` address; share it as `APP` below.
+
+- [ ] **Step 2 (laptop, after the user's OK): merge and push**
+
+```bash
+git checkout main && git merge --ff-only railway-postgres && git push origin main
+```
+
+- [ ] **Step 3 (deploy log, user shares or agent reads): migrations ran, healthcheck passed**
+
+Expected in order: build (`Wrote profile snapshot`, route table with `ƒ Middleware`), pre-deploy `Migrations applied.` (and no seed output), healthcheck succeeded. Then `curl -s -o /dev/null -w "%{http_code}\n" https://APP/` → `200` (served from the snapshot; the runtime log shows `content_service_fallback` with `"reason":"empty"`).
+
+- [ ] **Step 4 (laptop, after the user's OK): move the rows**
+
+```bash
+DATABASE_URL="$(grep '^RAILWAY_DATABASE_URL=' .env | cut -d= -f2-)" npm run -s db:move-rows -- data/backups/career-platform-20261008T2154Z.sqlite
+```
+
+Expected: a table with all 13 content tables `identical: true` and counts matching the backup section above, then `All tables match the backup.`
+
+- [ ] **Step 5 (laptop): live checks**
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://APP/
+curl -s https://APP/ | grep -o 'href="/michael-johnson-resume.pdf"' | head -1
+curl -sI http://APP/ | grep -iE "^HTTP|^location"
+curl -s -o /dev/null -w "%{http_code} %{content_type}\n" https://APP/michael-johnson-resume.pdf
+```
+
+Expected: `200`; the relative résumé href (the snapshot would render the absolute `https://michaeljportfolio.me/...pdf` URL, so the relative one proves the page came from the moved VM rows); `http://` answers with a redirect to `https://APP/` (308 from the middleware, or a 301 if Railway's edge redirects first); `200 application/pdf`. After a page load, the runtime log has no new `content_service_fallback` line.
+
+- [ ] **Step 6: Record results**
+
+Write what ran and what each check showed under this task, then `git commit -am "docs: record the Railway deploy and row move"` and `git push origin main`.
+
+---
+
+### Task 7: Move michaeljportfolio.me to Railway and retire the VM
 
 **What this is:** Today Cloudflare's A records point at the Azure VM's IP. Railway gives each custom domain a target hostname, and Cloudflare points the names there instead. Railway issues and renews the HTTPS certificate itself (guide: "Railway issues and automatically renews its own certificate"), so Certbot is no longer involved.
 
