@@ -376,6 +376,13 @@
   font-weight: 700;
 }
 
+.hosting {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+  color: var(--ink-mute);
+  font-size: 0.88rem;
+}
+
 @keyframes rise {
   from {
     opacity: 0;

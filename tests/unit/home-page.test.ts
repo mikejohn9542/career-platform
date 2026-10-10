@@ -47,6 +47,14 @@ describe("home page", () => {
     expect(html).not.toContain("555) 010-9999");
   });
 
+  it("says in the footer where the site is hosted", async () => {
+    getSiteContent.mockResolvedValue({ content: makeFixtureContent(), source: "database" });
+
+    const html = await renderHomePage();
+
+    expect(html).toContain("Hosted on Railway · Data in PostgreSQL");
+  });
+
   it("reads content on every request instead of prerendering at build time", async () => {
     const page = await import("@/app/page");
 

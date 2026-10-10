@@ -291,6 +291,7 @@ export default async function HomePage() {
                 <ExternalIcon />
               </a>
             </div>
+            <p className={styles.hosting}>Hosted on Railway · Data in PostgreSQL</p>
           </footer>
         </main>
       </div>
