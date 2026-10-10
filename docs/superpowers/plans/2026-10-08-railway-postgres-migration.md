@@ -1419,11 +1419,11 @@ Write what ran and what each check showed under this task, then `git commit -am 
 
 **Where it runs:** **Railway dashboard (user)**, **Cloudflare (user)**, laptop (read-only checks), **Azure portal (user)**. **How we check it:** DNS answers with Railway's target, `https://michaeljportfolio.me` serves the Railway release with a valid certificate, and `openssl` shows the new issuer and dates.
 
-- [ ] **Step 1 (user, Railway): add the custom domains**
+- [x] **Step 1 (user, Railway): add the custom domains** — apex only (free plan); see Task 7 results
 
 Web service → **Settings → Networking → Custom Domain**: add `michaeljportfolio.me`, then `www.michaeljportfolio.me`, both with the service's port. Railway shows a **CNAME target** for each (and possibly a `_railway-verify` TXT record). Keep that page open.
 
-- [ ] **Step 2 (user, Cloudflare): repoint DNS**
+- [x] **Step 2 (user, Cloudflare): repoint DNS** — apex to Railway; `www` via Cloudflare redirect
 
 In Cloudflare → `michaeljportfolio.me` → **DNS → Records**:
 1. Delete the two A records (`@` and `www` → `135.232.245.90`).
@@ -1432,7 +1432,7 @@ In Cloudflare → `michaeljportfolio.me` → **DNS → Records**:
 4. Add any TXT verification record Railway listed.
 5. Proxy status **DNS only** (gray cloud) on all of them.
 
-- [ ] **Step 3 (laptop, read-only): watch DNS and the certificate**
+- [x] **Step 3 (laptop, read-only): watch DNS and the certificate**
 
 ```bash
 nslookup michaeljportfolio.me 1.1.1.1
@@ -1454,3 +1454,14 @@ Only after Step 3 passes: VM `vm-career-platform` → **Overview → Stop** → 
 - [ ] **Step 6: Record results**
 
 Write what ran and what each check showed under Task 4, scrub any laptop IP, and commit: `git commit -m "docs: record the Railway domain cutover"`, then `git push origin main`.
+
+### Task 7 results (2026-10-09, checked from the user's home network)
+
+- **Revision:** Railway's free plan allows one custom domain, so `www` is a Cloudflare redirect instead of a second Railway domain. Cloudflare: `www` = A `192.0.2.1` **proxied** (placeholder; never contacted), Redirect Rule `www to root` → `concat("https://michaeljportfolio.me", http.request.uri.path)`, 301, query string preserved. The apex record stays DNS only and points to Railway.
+- DNS (1.1.1.1): apex → `69.46.46.18` (Railway); `www` → Cloudflare edge; name servers `gloria`/`walt.ns.cloudflare.com`.
+- `http://www…/` and `https://www…/` → **301** `https://michaeljportfolio.me/` (`server: cloudflare`); `https://www…/michael-johnson-resume.pdf?x=1` → 301 `https://michaeljportfolio.me/michael-johnson-resume.pdf?x=1`; following it ends at 200 after 1 redirect.
+- Apex: `https://` 200 (`server: railway-hikari`), name, redesign title, role lens present; résumé href relative (Postgres rows); phone number not on the page; `http://` → 301 `https://`; PDF 200 `application/pdf` 91,150 bytes; unknown path 404.
+- Certificates: apex `CN=michaeljportfolio.me`, Let's Encrypt YE1, until Jan 6 2027 (Railway); `www` Cloudflare Universal SSL, Let's Encrypt YE1, SAN `*.michaeljportfolio.me, michaeljportfolio.me`, until Dec 30 2026 (auto-renewed by Cloudflare).
+- Railway Postgres (read-only, TLS): all 13 tables still at the VM's row counts (55 rows).
+- [ ] VM: still **running** — Step 5 (Stop, keep VM and disk) is the user's remaining action. Nothing serves from it anymore.
+
