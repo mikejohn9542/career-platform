@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Archivo, Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 
+// Google Analytics 4 measurement ID for the michaeljportfolio.me web stream.
+// Public by design: it only identifies which GA4 stream the browser reports to.
+const GA_MEASUREMENT_ID = "G-4H86T3MD8N";
+
 const archivo = Archivo({
   subsets: ["latin"],
   axes: ["wdth"],
@@ -35,6 +39,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${archivo.variable} ${hanken.variable}`}>
+      <head>
+        {/* Google tag (gtag.js) */}
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', '${GA_MEASUREMENT_ID}');`,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );
