@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from "react";
+import Link from "next/link";
 import { contentService } from "@/lib/content-service";
 import { CopyEmail } from "@/components/CopyEmail";
 import { CountUp } from "@/components/CountUp";
@@ -291,7 +292,9 @@ export default async function HomePage() {
                 <ExternalIcon />
               </a>
             </div>
-            <p className={styles.hosting}>Hosted on Railway · Data in PostgreSQL</p>
+            <p className={styles.hosting}>
+              Hosted on Railway · Data in PostgreSQL · <Link href="/privacy">Privacy</Link>
+            </p>
           </footer>
         </main>
       </div>
