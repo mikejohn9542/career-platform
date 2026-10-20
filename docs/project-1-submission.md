@@ -15,7 +15,7 @@ Site: **https://michaeljportfolio.me** · Repository: https://github.com/mikejoh
 | Rollback notes | [README → Rollback](../README.md#rollback) |
 | Cost notes and the move recommendation | [README → Recommendation](../README.md#recommendation-should-a-three-developer-startup-on-an-azure-vm-move-to-railway) |
 | Deviations from the class guide (`www`, SQLite, VM version) | [README → Deviations](../README.md#deviations-from-the-class-guide) |
-| Google Analytics 4: tag, privacy notice, and the `page_view` and `click` evidence | [docs/evidence/ex06.md](evidence/ex06.md) |
+| Domain email on Zoho (mail records, send/receive/reply tests, SPF/DKIM/DMARC) and Google Analytics 4 (tag, privacy notice, `page_view` and `click` evidence) | [docs/evidence/ex06.md](evidence/ex06.md) |
 | Earlier Azure records | [Azure migration](superpowers/plans/2026-09-24-azure-vm-migration.md), [operating the VM](superpowers/plans/2026-10-01-operate-the-vm.md), [Ex04 HTTPS write-up](how-this-site-is-secured.md) |
 
 ## Section 6 proofs
