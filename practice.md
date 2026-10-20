@@ -103,51 +103,66 @@ sequenceDiagram
 
 ### The walkthrough
 
-**1. The browser resolves the name.** The same tree walk — cache, resolver, root, `.me`, Cloudflare —
-but the answer differs in kind. Cloudflare held two **A** records, `@` and `www`, both pointing at
-`135.232.245.90`, both **DNS only**. An A record is a literal address you rent from Azure, so the
-browser connects to a machine you are responsible for. Today's apex is a CNAME to a Railway
-hostname, which lets Railway change the underlying address without touching the zone.
+The whole trip: the browser, a DNS resolver, Cloudflare, Azure's front door, the firewall, nginx on
+the VM, one of two app copies, a file on the disk, and all the way back.
 
-**2. The address is not on the VM.** The public IP lives in Azure's network fabric, not on the
-interface: `ip addr` on the VM only ever shows `10.0.0.4`. Azure receives traffic for
-`135.232.245.90` and forwards it inward, so the VM answers on a private address.
+**1. You press Enter. The browser is stuck.** It has a *name*, `michaeljportfolio.me`, and names are
+not addresses. Nothing can be sent to a name, so nothing happens until it gets a number.
 
-**3. The NSG decides before the VM does.** Packets meet the network security group first:
-`Allow-SSH-Laptop` (TCP 22 from one `/32`), `Allow-HTTP-80`, and the 443 rule added with TLS.
-Anything not allowed is dropped by the default `DenyAllInBound`. That is why 8000 and 8001 were
-unreachable from the internet while still listening — `curl` from the laptop returned `000`. On
-Railway there is no equivalent control: the platform's edge is the only door.
+**2. It asks a resolver for the address.** The browser asks the DNS resolver its network gave it.
+That resolver asks around until it reaches Cloudflare, because Cloudflare is the authority for the
+name — that is what pointing the domain at Cloudflare's nameservers means. Cloudflare answers
+`135.232.245.90`.
 
-**4. TCP, then TLS, terminated by nginx.** nginx listens on `0.0.0.0:443` and presents the Let's
-Encrypt certificate covering both `michaeljportfolio.me` and `www`. Its master process runs as root
-to bind the low port, then hands traffic to `www-data` workers. Renewal was mine: Certbot's timer
-twice a day, renewing inside 30 days of the 90-day life. That whole job disappeared in the migration.
+**3. The browser opens a connection to that address, on port 443.** Port 443 is where HTTPS lives by
+convention. Now it has somewhere to send the request.
 
-Because the certificate covered both names and both A records pointed at the same box, **`www`
-needed no redirect** — nginx served it directly. Today `www` is a Cloudflare redirect rule, because
-Railway's plan allows one custom domain. Port 80 stayed open so nginx could redirect it to HTTPS and
-so Let's Encrypt's HTTP-01 challenge could prove domain control.
+**4. The request arrives at Azure, not at the VM.** That address belongs to Azure's network, not to
+the machine. The VM only knows itself as `10.0.0.4`. Azure catches traffic for the public address
+and forwards it inward.
 
-**5. nginx chooses an upstream.** `proxy_pass` to a pool of two, `127.0.0.1:8000` and
-`127.0.0.1:8001`, each `max_fails=1 fail_timeout=5s`, with
-`proxy_next_upstream error timeout http_502 http_503`. A dead copy is retried silently on the other.
-nginx also sets `Host`, `X-Forwarded-For`, and `X-Forwarded-Proto $scheme` — the same header
-Railway's edge sets today, and how Next.js knows the original request was HTTPS.
+**5. Azure's firewall decides whether to let it through.** Before the VM sees anything, the network
+security group checks its rules: SSH from my laptop only, port 80, port 443. Anything else is
+dropped silently. This request is on 443, so it passes and Azure forwards it to `10.0.0.4`.
 
-**6. The hop to the app crosses nothing.** Loopback only (`-H 127.0.0.1` in the systemd unit).
-Plaintext is acceptable here because the bytes never leave the machine.
+**6. nginx answers, because nothing else can.** The app listens on `127.0.0.1:8000` and `:8001`, and
+`127.0.0.1` means "only from inside this machine." Traffic from the internet cannot reach it. nginx
+is the only program listening on an address the outside world can reach, so every visitor goes
+through nginx. That is the point of it.
 
-**7. The database read is not a network call.** SQLite is a library: the app opens a file on the
-VM's disk and reads pages in-process. No handshake, no pool, no credentials, nothing to time out.
-Today the same step is TCP + TLS to a separate Postgres service, which is why `src/db/client.ts`
-needs pool options, a connection timeout, and an error listener so a dropped idle connection cannot
-crash the server.
+**7. The browser and nginx set up encryption.** nginx sends the Let's Encrypt certificate. The
+browser checks three things: does the name on it match, was it issued by a CA I trust, is it still
+in date. If yes, the two agree on keys and everything after this is encrypted. The certificate and
+its private key live on the VM, which is why nginx does this step and not the app.
 
-**8. Back out the way it came.** The app returns HTML to nginx, nginx encrypts it into the TLS
-session and writes it back through the NSG. The browser-side GA4 hop would look identical, since
-`gtag.js` reports straight to Google and never touches the server — though the tag was added
-2026-10-15, after the move, so it never ran on the VM.
+**8. Now the actual request goes over: `GET /`.** It is encrypted in transit, and nginx decrypts it
+on arrival, because nginx holds the keys.
+
+**9. nginx passes it to one of the two app copies.** It picks `127.0.0.1:8000` or `:8001`. Two
+copies exist so that if one dies the other still answers and nobody notices. This hop is plain
+HTTP, which is fine: it never leaves the machine, so there is no wire to listen on.
+
+**10. The app needs the content, so it opens a file.** SQLite is not a server to connect to. It is a
+file on the VM's disk, and the app reads it directly, the way a program opens any file. No
+connection, no password, no network. The app reads the profile and projects out of it and builds the
+HTML.
+
+**11. The HTML goes back to nginx.** Back to whoever asked. nginx made the request, so nginx gets
+the answer.
+
+**12. nginx encrypts it and sends it to the browser.** Out through Azure and back across the
+internet. It has to be encrypted because the browser's secure session is with nginx — that is who it
+shook hands with in step 7.
+
+**13. The browser reads the page and asks for the rest.** The HTML mentions CSS, fonts, JavaScript
+and images. For each one the browser repeats steps 8 to 12, but not steps 2 to 7, because it already
+knows the address and already has an open encrypted connection. Then it draws the page.
+
+**The idea worth holding onto.** Every step is a handoff, and at each handoff something can refuse.
+DNS can hand back the wrong address. The firewall can drop the packet. The certificate can fail the
+check. nginx can find no app copy alive and answer 502. The app can fail to read its file. When the
+site is broken the real question is *which handoff failed*, and each one has its own test — which is
+why `dig` can settle a DNS question without ever touching TLS.
 
 ### What breaks differently
 
