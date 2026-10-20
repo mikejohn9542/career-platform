@@ -31,7 +31,7 @@ sequenceDiagram
     B->>E: ACK — connection open
     B->>E: TLS ClientHello (SNI + ALPN)
     E-->>B: certificate chain + key exchange
-    Note over B: verify name, trusted CA, dates;<br/>derive session keys
+    Note over B: verify name, trusted CA and dates,<br/>then derive session keys
     B->>E: GET / HTTP/2, Host header (encrypted)
     E->>S: plain HTTP + X-Forwarded-Proto: https
     S->>D: SELECT profile and projects
@@ -41,7 +41,7 @@ sequenceDiagram
     Note over B: build the DOM, discover<br/>CSS, JS, fonts, images
     B->>E: fetch subresources (same connection)
     E-->>B: 200 each
-    Note over B: render, run JS;<br/>gtag.js reports to GA4
+    Note over B: render and run JS,<br/>gtag.js reports to GA4
 ```
 
 ## When the first answer is a redirect
