@@ -290,6 +290,27 @@ send-only API such as Resend or SES with no mailbox; use Zoho's free hosted mail
 - **What I gave up:** Zoho holds my mail, I depend on their uptime and their relays' reputation, and
   the DKIM private key is theirs rather than mine.
 
+### 3. SQLite as the initial engine, PostgreSQL on Railway
+
+**Alternatives considered:** PostgreSQL on the VM from the start; a managed database from day one;
+flat JSON files in the repository. **Chosen:** SQLite first.
+
+- **It is a file, not a service.** On a 1 GiB VM that meant no second process competing for memory,
+  no port to firewall, no database user or password to manage, and nothing extra to start at boot.
+  The Azure milestone was about nginx, systemd, and TLS; adding database administration on top would
+  have doubled what could break without teaching anything the exercise asked for.
+- **The workload suits it exactly.** One profile, a handful of projects, read on every request,
+  written by me a few times a week. There is one writer and no concurrency to speak of, which is
+  where SQLite's single-writer limit would otherwise bite.
+- **Flat files were the real alternative, and lost.** JSON in the repository would have made every
+  content edit a commit and a redeploy, and would have proved nothing about reading from a database
+  at request time.
+- **Why it could not stay.** Railway's filesystem is ephemeral: a file-based database is wiped on
+  every redeploy, so the writes would vanish. Railway also offers PostgreSQL as a managed service on
+  the same private network. The migration to PostgreSQL was forced by the platform, not by SQLite
+  failing at its job — it did the Azure job well, and the move is recorded in full in
+  [the migration plan](docs/superpowers/plans/2026-10-08-railway-postgres-migration.md).
+
 ## Two investigated failures
 
 ### A. Application and database dependency: the build passed but PostgreSQL had no tables

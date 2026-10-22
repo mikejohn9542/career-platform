@@ -12,7 +12,7 @@ on **2026-10-20**, worked through on **2026-10-22**. Each line names the file th
 - [x] Record an outage test: profile kept, message shown, 503, recovery without a restart → [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md)
 - [ ] **Open:** the HTML document still returns 200 during an outage; the 503 is on `/api/health`. An App Router page cannot set a status code → would need Node-runtime middleware. Recorded in [README → Limitations](README.md#limitations)
 - [ ] **Open:** add a clearly labelled project entry describing this site as a project in progress → a row in Railway's PostgreSQL (needs database access that the laptop currently lacks)
-- [ ] **Open:** explain why SQLite was the initial database engine → `README.md`
+- [x] Explain why SQLite was the initial database engine → [README → Decisions](README.md#3-sqlite-as-the-initial-engine-postgresql-on-railway)
 
 ## 2. Azure deployment (20 pts)
 
