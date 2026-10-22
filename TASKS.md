@@ -18,7 +18,7 @@ on **2026-10-20**, worked through on **2026-10-22**. Each line names the file th
 
 - [x] Add an Azure architecture diagram with locations, protocols, and ports → [README → History: Azure VM](README.md#history-azure-vm-septoct-2026)
 - [ ] **Open:** record the inbound rule for port 443, or confirm it in the portal — currently marked unverified → [README → Limitations](README.md#limitations)
-- [ ] **Open:** state that the post-restart page was read from the database, not the snapshot → `docs/superpowers/plans/2026-10-01-operate-the-vm.md` Section 6 Step 1
+- [x] Addressed the post-restart database question honestly: inferred, not separately captured → `docs/superpowers/plans/2026-10-01-operate-the-vm.md` Section 6 Step 1
 
 ## 4. Railway and PostgreSQL migration (25 pts)
 

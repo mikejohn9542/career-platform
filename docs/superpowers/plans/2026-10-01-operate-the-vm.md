@@ -254,6 +254,14 @@ You run the crash and reboot tests yourself (for example, `sudo kill <pid>` of o
     - `career-platform@8000` and `@8001`: `active`, started `21:54:17 UTC`, 9 s after boot ✅. nginx: `active`, started `21:54:18 UTC` ✅ (pid 773). Nobody logged in.
     - The copies got pids 668 and 669 again. Linux hands out IDs in the same order on a fresh boot, so the start timestamps are the evidence, not the pids.
     - `curl http://127.0.0.1/` with `Host: michaeljportfolio.me` → `200`, `Michael Johnson`, header `Server: nginx/1.24.0 (Ubuntu)` ✅. From the laptop, `http://135.232.245.90/` → `200` ✅
+    - **Did the page come from SQLite after the restart?** Added 2026-10-22. The page is rendered per
+      request by the content service (`28bd532`), and the service was confirmed to be reading the
+      database on this VM: it printed `database Michael Johnson`, and the running `next-server`
+      process held `data/career-platform.sqlite` open (both recorded in
+      [`ex03.md`](../../evidence/ex03.md)). Those two checks were run **before** this restart, not
+      after it, and the VM also had a generated snapshot on disk, so strictly the post-restart `200`
+      proves the site served, not which source it served from. The database read after the restart
+      is therefore **inferred, not separately captured** — marked here rather than overstated.
 
 - [x] **Step 2: Kill one copy (`kill -9`)**
   - **Where:** VM (run in manual mode, so the user approved each command)
