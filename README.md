@@ -410,6 +410,12 @@ What was observed, and what was not:
 
 Known gaps, stated rather than hidden:
 
+- **The database-failure behaviour is merged but not yet live.** On 2026-10-22 the live site runs
+  commit `347b069` (2026-10-20). Railway had a platform outage that day with builds disabled for
+  Free and Trial plans, so six pushes produced no deployment and `railway up` answered
+  "Deploys have been paused temporarily". The site stayed up and healthy on the previous build
+  throughout. Evidence and the exact status-page wording:
+  [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md).
 - **The outage status code is on `/api/health`, not on the page.** During a database outage the
   HTML document answers `200` while `/api/health` answers `503`. The project asks for the page
   itself to return 503; an App Router page has no API for setting a status. See

@@ -49,8 +49,17 @@ content_unavailable {
 Verified against the **live site** rather than locally — see the limitation below.
 
 ```
-(filled in from the live check after the deploy of 2026-10-22; see the table at the end)
+2026-10-22 12:25 PDT, from a home network
+GET https://michaeljportfolio.me/          -> HTTP 200
+  profile rendered                          : yes
+  real project from PostgreSQL ("LLM Manager"): yes
+  "Projects temporarily unavailable"         : absent
 ```
+
+The live site reads its projects from PostgreSQL and renders them, which is the healthy case. Note
+that at the time of this check the live site was running commit `347b069`, which predates the
+change described here — so this confirms the healthy path end to end, not the new outage handling.
+See "Deployment status" below.
 
 ## 3. Recovery without a restart
 
@@ -76,10 +85,29 @@ second, and asserts that the second call reports `projects: "available"` with
   its own status code, so the 503 is served by `/api/health`. This gap is recorded in the
   [README limitations](../../README.md#limitations).
 
-## Live check after the deploy
+## Deployment status: this change is merged but not yet live
 
-| Check | Result |
+**As of 2026-10-22 12:35 PDT the live site runs commit `347b069` (2026-10-20), not this change.**
+The cause is a Railway platform outage, not this repository and not the trial's usage:
+
+- Railway's deployment history shows the last build as `347b069`, `SUCCESS`, 2026-10-20 15:13 PDT.
+  Six pushes on 2026-10-22 produced **no deployment at all**.
+- `railway up --detach` answers: `Deploys have been paused temporarily`.
+- [status.railway.com](https://status.railway.com/) at 12:36 PDT (19:36 UTC) reports an active
+  **Major Outage**, state "Identified", last updated 19:06 UTC: builds are running for Pro and
+  Enterprise, **still unavailable for Hobby**, and **not yet re-enabled for Free and Trial**, which
+  is this project's plan. Signups are paused. Next update expected 19:45 UTC.
+- The running container is healthy and serving traffic throughout, so the site never went down.
+
+What that means for the behaviour described in this file: it is implemented, unit-tested (30 tests
+pass), type-checked, linted, built cleanly as a production build locally, and verified against a
+running server for the outage case. It is **not yet observable on the live site**. The live check of
+`https://michaeljportfolio.me/api/health` returns `404` until a build runs, because the route does
+not exist in `347b069`.
+
+| Check | Result (2026-10-22) |
 |---|---|
-| `GET https://michaeljportfolio.me/` | *filled in below* |
-| `GET https://michaeljportfolio.me/api/health` | *filled in below* |
-| Projects rendered from PostgreSQL | *filled in below* |
+| `GET https://michaeljportfolio.me/` | **200**, profile and projects rendered from PostgreSQL |
+| `GET https://michaeljportfolio.me/api/health` | **404** — route not in the deployed commit |
+| Deployed commit | `347b069` (2026-10-20) |
+| Reason the deploy is blocked | Railway platform outage; Trial builds disabled |
