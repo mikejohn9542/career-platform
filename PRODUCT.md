@@ -21,8 +21,9 @@ A rare mix of business and technical: real finance and operations work (mortgage
 ## Operating Context
 
 - Recruiters scan quickly, often on a laptop between other candidates and sometimes on a phone.
-- The page is server-rendered by Next.js from a SQLite database (`src/content/profile.ts` is the authored source, seeded into the DB). A snapshot (`src/generated/profile-snapshot.json`) is the fallback if the DB is unavailable.
-- Deployed on an Azure VM behind nginx over HTTPS. A later migration to Railway is planned.
+- The page is server-rendered by Next.js from a PostgreSQL database (`src/content/profile.ts` is the authored source, seeded into the DB for local development only; the live content is whatever is in PostgreSQL). If the database cannot answer, the profile still renders from `src/generated/profile-snapshot.json`, the project list is replaced by "Projects temporarily unavailable", and the request is reported as unhealthy — project content is never substituted.
+- Deployed on Railway (PostgreSQL, Railway-managed TLS) since 2026-10-08. It ran on an Azure VM behind nginx before that; the VM is kept as the rollback target. See the README for both architectures.
+- Analytics: Google Analytics 4, with a privacy page linked from the footer. Domain email runs on Zoho Mail.
 
 ## Capabilities and Constraints
 

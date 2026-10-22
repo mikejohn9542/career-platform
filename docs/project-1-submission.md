@@ -1,24 +1,104 @@
-# Project 1 submission: Railway migration record
+# Project 1 submission index
 
-Site: **https://michaeljportfolio.me** · Repository: https://github.com/mikejohn9542/career-platform
+| | |
+|---|---|
+| **Live site** | **https://michaeljportfolio.me** |
+| **Repository** | https://github.com/mikejohn9542/career-platform |
+| **Final commit SHA** | `PENDING` — filled in with the last commit pushed before submission |
 
-## Records
+Every requirement below links to the record that answers it. Records written after the fact say so.
+
+## 1. The application, its spec, and its plans
 
 | What | Where |
 |---|---|
-| Migration plan, with what ran and what each check showed | [docs/superpowers/plans/2026-10-08-railway-postgres-migration.md](superpowers/plans/2026-10-08-railway-postgres-migration.md) |
-| VM backup and its verification | Plan → "Backup of the VM database" |
-| Table-by-table comparison, VM vs Railway (redacted: counts and hashes only, no row contents or credentials) | Plan → Task 6, Step 4 result |
-| Live results (domain, TLS, redirects, data source) | Plan → Task 6, Step 5 result and "Task 7 results" |
-| Deploy migrations and runtime log review | Plan → Task 6, "Cause found" and "Runtime log review" |
-| Write test and update test | Below |
-| Rollback notes | [README → Rollback](../README.md#rollback) |
-| Cost notes and the move recommendation | [README → Recommendation](../README.md#recommendation-should-a-three-developer-startup-on-an-azure-vm-move-to-railway) |
-| Deviations from the class guide (`www`, SQLite, VM version) | [README → Deviations](../README.md#deviations-from-the-class-guide) |
-| Domain email on Zoho (mail records, send/receive/reply tests, SPF/DKIM/DMARC) and Google Analytics 4 (tag, privacy notice, `page_view` and `click` evidence) | [docs/evidence/ex06.md](evidence/ex06.md) |
-| Earlier Azure records | [Azure migration](superpowers/plans/2026-09-24-azure-vm-migration.md), [operating the VM](superpowers/plans/2026-10-01-operate-the-vm.md), [Ex04 HTTPS write-up](how-this-site-is-secured.md) |
+| README: what the site does, how to set it up, update it, and roll it back | [README.md](../README.md) |
+| Original design spec (2026-09-15, before any code) | [specs/2026-09-15-personal-resume-career-platform-design.md](superpowers/specs/2026-09-15-personal-resume-career-platform-design.md) |
+| Original implementation plan | [plans/2026-09-15-personal-resume-career-platform.md](superpowers/plans/2026-09-15-personal-resume-career-platform.md) |
+| Product context | [PRODUCT.md](../PRODUCT.md) · Design system: [DESIGN.md](../DESIGN.md) |
+| Projects read from PostgreSQL per request | `src/app/page.tsx` (`dynamic = "force-dynamic"`), `src/db/repository.ts` |
+| Database-failure behaviour: profile stays, "Projects temporarily unavailable", unhealthy status, recovery without a restart | [README → Database failure behaviour](../README.md#database-failure-behaviour) · test: [evidence/db-outage-test.md](evidence/db-outage-test.md) |
 
-## Section 6 proofs
+## 2. Architecture diagrams, including email and analytics
+
+| What | Where |
+|---|---|
+| Railway architecture: locations, protocols, ports, plus the email and analytics paths | [README → How it runs today](../README.md#how-it-runs-today-railway) |
+| Azure VM architecture, same detail | [README → History: Azure VM](../README.md#history-azure-vm-septoct-2026) |
+| Request-path walkthrough for both deployments | [practice.md](../practice.md) |
+
+## 3. Migration: plan, comparison, cutover, rollback
+
+| What | Where |
+|---|---|
+| Migration plan, **written before the deployment changed** (commit `ef47cdd`, before the first code commit `f1a6dc6`) | [plans/2026-10-08-railway-postgres-migration.md](superpowers/plans/2026-10-08-railway-postgres-migration.md) |
+| VM backup and its verification | Plan → "Backup of the VM database" |
+| Table-by-table comparison, VM vs Railway: 13 tables, 55 rows, 268 cells, 0 differences (redacted: counts and hashes only) | Plan → Task 6, Step 4 result |
+| Deploy, pre-deploy migrations, runtime log review | Plan → Task 6, "Cause found" and "Runtime log review" |
+| Cutover and post-cutover checks | Plan → "Task 7 results" |
+| What Git moved vs what needed another method, and the data change that rules out seeding | [README → How the migration kept the data](../README.md#how-the-migration-kept-the-data) |
+| Rollback, including data written after cutover, and schema rollback | [README → Rollback](../README.md#rollback) |
+| Who owns what on Azure vs Railway, item by item | [README → Who owns what](../README.md#who-owns-what) |
+
+## 4. Azure deployment and DNS/HTTPS verification
+
+| What | Where |
+|---|---|
+| VM build: size, image, addresses, SSH key, firewall rule, auto-shutdown | [evidence/ex03.md](evidence/ex03.md) · [plans/2026-09-24-azure-vm-migration.md](superpowers/plans/2026-09-24-azure-vm-migration.md) |
+| Two app copies under systemd, nginx in front, app on loopback only | [plans/2026-10-01-operate-the-vm.md](superpowers/plans/2026-10-01-operate-the-vm.md) → Sections 1 and 2 |
+| Site answers over the internet with port 8000 closed | Same → Section 4, Step 1 |
+| **Controlled restart**: boot time changes, services start themselves 9 s later, site answers with the data | Same → Section 6, Step 1 |
+| Crash tests: kill one copy, kill both, stop the service | Same → Section 6, Steps 2-4 |
+| Ports, private and public addresses, NSG inbound rules | Same → "Record" |
+| HTTPS on the VM: certificate, renewal, ports (Ex04, written by me) | [how-this-site-is-secured.md](how-this-site-is-secured.md) |
+| Final DNS and HTTPS on Railway: records, `www` redirect, both certificates | Plan → "Task 7 results" · zone before mail: [evidence/dns-before-zoho.md](evidence/dns-before-zoho.md) |
+
+## 5. A reviewed change published through Railway
+
+| What | Where |
+|---|---|
+| GitHub → Railway, build, pre-deploy migrate, healthcheck, then traffic | [README → Updating the site](../README.md#updating-the-site) · `railway.json` |
+| Commit `c1b6ddd` → Railway deployment `06e49d11`, `SUCCESS` 2026-10-10 05:08:16 UTC, footer live | [Reviewed changes](#reviewed-changes) below |
+| Secrets kept out of the repository | `.gitignore` (`.env`, `data/`), Railway variables |
+| How to restore a previous version, code and data | [README → Rollback](../README.md#rollback) |
+
+## 6. Zoho email
+
+| What | Where |
+|---|---|
+| Send, receive, and reply from `michaelj@michaeljportfolio.me`, with times and outcomes | [evidence/ex06.md](evidence/ex06.md) §1 |
+| MX, SPF, DKIM, DMARC: the records, verified live against `8.8.8.8` | [evidence/ex06.md](evidence/ex06.md) §2 |
+| Receiving server's verdict: `spf=pass`, `dkim=pass`, `dmarc=pass`, all aligned | [evidence/zoho-header-check.md](evidence/zoho-header-check.md) |
+| Independent corroboration: mail-tester 10/10, Microsoft DMARC aggregate reports | [evidence/ex06.md](evidence/ex06.md) §2 + screenshot |
+| Why managed email rather than self-hosted | [README → Decisions](../README.md#2-managed-email-zoho-rather-than-self-hosted-mail) |
+| **Not done:** the pre-MX delivery test, marked unverified | [README → Limitations](../README.md#limitations) |
+
+## 7. Google Analytics 4
+
+| What | Where |
+|---|---|
+| Tag install, measurement ID, how browser activity reaches Google | [README → Analytics](../README.md#analytics-ga4) · `src/app/layout.tsx` |
+| `page_view` verified in Realtime (screenshot) | [evidence/ex06.md](evidence/ex06.md) §3 |
+| Outbound `click` verified with its destination parameters (screenshot) | Same §3 |
+| What the click shows and what it does not | Same §3 |
+| Privacy page, linked from the footer | `src/app/privacy/page.tsx` · https://michaeljportfolio.me/privacy |
+
+## 8. Failures, decisions, reflection, costs, limitations
+
+| What | Where |
+|---|---|
+| Failure A — application/database dependency: the build passed but PostgreSQL had no tables | [README → Two investigated failures](../README.md#two-investigated-failures) |
+| Failure B — network/DNS: `www` still resolved to the retired VM after cutover | Same |
+| Deliberate lab failure (supplied simulation, labelled): stale A record causing a TLS name mismatch | [evidence/ex05.md](evidence/ex05.md) |
+| Azure-era application/database failure: two different database paths, fixed in `cf8324b` | [evidence/ex03.md](evidence/ex03.md) §3 |
+| Decision 1 — Azure VM vs Railway, with alternatives | [README → Decisions](../README.md#1-move-from-an-azure-vm-to-railway) |
+| Decision 2 — managed email vs self-hosted | [README → Decisions](../README.md#2-managed-email-zoho-rather-than-self-hosted-mail) |
+| Reflection, marked as written afterwards | [README → Retrospective](../README.md#retrospective) |
+| Costs, credits, expiry dates, cleanup plan | [README → Costs, credits, and cleanup](../README.md#costs-credits-and-cleanup) |
+| Limitations and everything marked unverified | [README → Limitations](../README.md#limitations) |
+| Outstanding work | [TASKS.md](../TASKS.md) |
+
+## Reviewed changes
 
 - **Railway CLI:** linked to project `vivacious-happiness`, service `earnest-clarity`, environment
   `production`. `railway domain list` → `michaeljportfolio.me`, custom, verified, certificate
