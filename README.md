@@ -225,16 +225,26 @@ Reverting **code** is a push: revert the commit on `main` and Railway redeploys.
 history in Railway carries the commit SHA, so the version to go back to is the previous `SUCCESS`
 deployment's SHA.
 
-Reverting **data** is not a push. Railway now takes writes (the "SQL" skill exists only there), so
-pointing DNS back to Azure would lose them. To go back:
+Reverting **data** is not a push. Railway takes writes (the "SQL" skill exists only there), so any
+move away from it has to carry those rows.
+
+**The Azure fallback is gone.** The VM was deleted on 2026-10-22, so steps 3 and 4 below no longer
+describe a server that exists. Going back to Azure now means rebuilding it from
+[the Azure migration plan](docs/superpowers/plans/2026-09-24-azure-vm-migration.md) and
+[operating the VM](docs/superpowers/plans/2026-10-01-operate-the-vm.md) — both record every command,
+unit file, and nginx block — then restoring
+`data/backups/career-platform-20261008T2154Z.sqlite` and following the steps below. Budget hours,
+not minutes. The surviving VNET, public IP, and NSG in `rg-career-platform` would be reused.
+
+The procedure, for whichever target the VM is rebuilt as:
 
 1. Pause content changes and compare both databases (the comparison in the plan is the template).
-2. Copy any Railway-only rows to the VM's SQLite database.
-3. In Cloudflare, replace the root CNAME with an A record to `135.232.245.90` (DNS only) and point
+2. Copy any Railway-only rows into the SQLite database.
+3. In Cloudflare, replace the root CNAME with an A record to the VM's address (DNS only) and point
    `www` back the same way.
-4. The VM's Let's Encrypt certificate expires **2027-01-06** and can't renew while DNS points at
-   Railway; after that date, run `sudo certbot --nginx -d michaeljportfolio.me -d www.michaeljportfolio.me`
-   once DNS points back.
+4. Issue a fresh certificate once DNS points back:
+   `sudo certbot --nginx -d michaeljportfolio.me -d www.michaeljportfolio.me`. The VM's old
+   certificate (valid to 2027-01-06) went with the VM.
 
 A **schema** change needs the same care as data: Drizzle migrations only move forward, so rolling
 back a migration means writing the reverse migration and applying it with `npm run db:migrate`
@@ -397,8 +407,8 @@ What was observed, and what was not:
 
 | Service | What it costs | Expires | Cleanup plan |
 |---|---|---|---|
-| Azure VM `vm-career-platform` (`Standard_B2ats_v2`) | Azure for Students credit | The student offer's credit; the exact expiry is in the Azure portal and is **not recorded here** | Keep running as the rollback target until the instructor releases it, then **Stop (deallocated)**. Deleting `rg-career-platform` removes the VM, disk, NIC, public IP, and NSG together. |
-| Azure public IP (Standard, static) | Billed from the same credit while allocated | With the VM | Deleted with the resource group |
+| Azure VM `vm-career-platform` (`Standard_B2ats_v2`) | Azure for Students credit | — | **Deleted 2026-10-22.** No longer billing. |
+| Azure VNET, public IP (Standard, static), and NSG in `rg-career-platform` | Billed from the same credit; a static public IP bills even with no VM attached | — | **Still present.** Deleting `rg-career-platform` removes all three. Do that once the instructor confirms the VM is no longer needed, since the IP accrues cost while it is reserved. |
 | Railway (web service and PostgreSQL) | Trial: $5 of usage or 30 days | Started 2026-10-08, ends about **2026-11-07** | Before it ends, either start a paid plan (the Free plan allows no custom domain) or roll back to Azure using [Rollback](#rollback). |
 | Railway Postgres TCP proxy | Included | — | **Open:** remove it now that the laptop database work is finished. |
 | Cloudflare DNS | Free plan | — | Keep: it holds both the web and the mail records. |
@@ -423,10 +433,12 @@ Known gaps, stated rather than hidden:
 - **The production database is not reachable from my laptop**, so the healthy half of the outage
   test was verified against the live site and the outage half locally. The Railway web service
   reaches PostgreSQL over the project's private network, which is unaffected.
-- **The recorded Azure inbound rules predate HTTPS.** The rules table in
-  [operating the VM](docs/superpowers/plans/2026-10-01-operate-the-vm.md) was captured 2026-10-06 and
-  lists only ports 22 and 80. Port 443 was opened on 2026-10-08 when Certbot ran; that rule is
-  **unverified** in the record.
+- **The Azure VM has been deleted, so the rollback target no longer exists.** The VM was deallocated
+  and deleted on 2026-10-22. `az vm show` returns `ResourceNotFound`. The project asked for the VM
+  to stay running until the instructor released it, so this is a deviation, recorded rather than
+  hidden. The resource group `rg-career-platform` still holds the VNET, the public IP, and the
+  network security group. The consequence is in [Rollback](#rollback): going back to Azure now means
+  rebuilding the VM from the records, not repointing DNS at a running server.
 - **No pre-MX delivery test was captured.** The project asks for a message sent to the custom address
   *before* any mail record existed, with the outcome recorded. That test was not run, and MX is now
   published, so it cannot be reconstructed. Marked **unverified** rather than invented.

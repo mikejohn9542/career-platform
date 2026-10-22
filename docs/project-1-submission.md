@@ -134,6 +134,11 @@ confirmed again today rather than assumed.
 ## Status
 
 - Railway trial ends about **2026-11-07**.
-- Azure VM `vm-career-platform` stays running as the rollback target until the instructor says it
-  can stop. It runs `3ec9e9c` on SQLite.
+- **Azure VM `vm-career-platform` was deleted on 2026-10-22** (`az vm show` → `ResourceNotFound`).
+  It had been running `3ec9e9c` on SQLite as the rollback target. The project asked for it to stay
+  running until the instructor released it, so this is a deviation and is recorded as one in
+  [README → Limitations](../README.md#limitations). The VNET, public IP, and network security group
+  survive in `rg-career-platform`; the NSG rules were read back from Azure on 2026-10-22 and are in
+  [operating the VM](superpowers/plans/2026-10-01-operate-the-vm.md) → Record.
+- Rolling back to Azure now means rebuilding the VM from the plans: [README → Rollback](../README.md#rollback).
 - Pending: remove the Postgres TCP proxy (Railway dashboard) now that laptop database work is done.

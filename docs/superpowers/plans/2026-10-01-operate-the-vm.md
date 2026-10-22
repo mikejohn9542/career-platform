@@ -308,5 +308,25 @@ Only ports 22 and 80 listen on `0.0.0.0` (all addresses). The app listens on `12
 |---|---|---|---|---|
 | `Allow-SSH-Laptop` | 300 | TCP 22 | `<laptop-ip>/32` | Lets only the user's laptop SSH in. Update it when the laptop's network changes. |
 | `Allow-HTTP-80` | 320 | TCP 80 | Any | Lets every visitor reach nginx. Port 80 is meant to be public. |
+| `Allow-HTTPS-443` | 330 | TCP 443 | Any | Lets every visitor reach nginx over HTTPS. Added 2026-10-08 with Certbot. |
 
 There's no rule for 8000 or 8001, so the app ports stay closed to the Internet. Everything not allowed above is dropped by Azure's default `DenyAllInBound` rule.
+
+**The 443 row was added 2026-10-22**, after this table was first captured on 2026-10-06 — before
+TLS existed, so it listed only 22 and 80. The VM itself has since been deleted, but the network
+security group survived in `rg-career-platform`, so the rules were read back from Azure rather than
+recalled:
+
+```
+$ az network nsg rule list -g rg-career-platform --nsg-name vm-career-platformNSG \
+    --query "[].{name:name,priority:priority,port:destinationPortRange,proto:protocol,source:sourceAddressPrefix,access:access}" -o table
+
+Name              Priority    Port    Proto    Source            Access
+----------------  ----------  ------  -------  ----------------  --------
+Allow-SSH-Laptop  300         22      TCP      <laptop-ip>/32    Allow
+Allow-HTTP-80     320         80      TCP      *                 Allow
+Allow-HTTPS-443   330         443     TCP      *                 Allow
+```
+
+(The SSH source is a real laptop address and is redacted here, as everywhere else in these records.)
+This confirms the three rules, the two public ports, and that nothing ever opened 8000 or 8001.
