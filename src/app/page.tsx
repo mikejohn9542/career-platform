@@ -85,7 +85,7 @@ const SECTIONS = [
 ];
 
 export default async function HomePage() {
-  const { content } = await contentService.getSiteContent();
+  const { content, projects: projectsState } = await contentService.getSiteContent();
   const { profile, experience, education, skills, contact, resume } = content;
   const projects = content.projects.filter((project) => project.status === "published");
   const datathon = projects.find((project) => project.slug === "datathon-ems-dispatch");
@@ -183,6 +183,17 @@ export default async function HomePage() {
             <h2 id="projects-title" className={styles.actionTitle}>
               Proof in analysis and in code
             </h2>
+            {projectsState === "unavailable" ? (
+              <p className={styles.notice} role="status">
+                Projects temporarily unavailable. Everything else on this page is unaffected, and the
+                projects return on the next refresh once the database is reachable.
+              </p>
+            ) : null}
+            {projectsState === "available" && projects.length === 0 ? (
+              <p className={styles.notice} role="status">
+                No projects are published yet.
+              </p>
+            ) : null}
             {projects.map((project) => {
               const isDatathon = project.slug === "datathon-ems-dispatch";
               return (
