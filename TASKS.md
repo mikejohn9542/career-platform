@@ -57,6 +57,6 @@ on **2026-10-20**, worked through on **2026-10-22**. Each line names the file th
 
 - [x] Confirm the live site answers and renders projects from PostgreSQL (2026-10-22) → [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md)
 - [ ] **Open:** confirm the 2026-10-22 deployment reached `SUCCESS` in Railway and `/api/health` answers 200
-- [ ] **Open:** re-run the live DNS, HTTPS, and certificate checks and record the date (newest recorded: 2026-10-09)
+- [x] Re-ran the live DNS, HTTPS, and certificate checks on 2026-10-22 → [submission index §4](docs/project-1-submission.md)
 - [ ] **Open:** confirm the Azure VM is running and still serves `3ec9e9c` on SQLite
 - [ ] **Open:** remove the Railway Postgres TCP proxy (it appears to be gone already — the laptop can no longer reach the database)

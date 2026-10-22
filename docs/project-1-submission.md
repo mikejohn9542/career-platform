@@ -53,6 +53,25 @@ Every requirement below links to the record that answers it. Records written aft
 | HTTPS on the VM: certificate, renewal, ports (Ex04, written by me) | [how-this-site-is-secured.md](how-this-site-is-secured.md) |
 | Final DNS and HTTPS on Railway: records, `www` redirect, both certificates | Plan → "Task 7 results" · zone before mail: [evidence/dns-before-zoho.md](evidence/dns-before-zoho.md) |
 
+**Re-verified live on 2026-10-22 from a home network** (commands run, output as shown):
+
+```
+https://michaeljportfolio.me/        -> HTTP/1.1 200 OK
+http://michaeljportfolio.me/         -> 301  location: https://michaeljportfolio.me/
+http://www.michaeljportfolio.me/     -> 301  Location: https://michaeljportfolio.me/   Server: cloudflare
+https://www.michaeljportfolio.me/    -> 301  Location: https://michaeljportfolio.me/   Server: cloudflare
+following www                        -> final HTTP 200 at https://michaeljportfolio.me/ after 1 redirect
+
+apex certificate: subject=CN=michaeljportfolio.me  issuer=Let's Encrypt YE1
+                  notBefore=Oct  8 21:28:46 2026 GMT   notAfter=Jan  6 21:28:45 2027 GMT
+www  certificate: subject=CN=michaeljportfolio.me  issuer=Let's Encrypt YE1
+                  notBefore=Oct  1 21:02:10 2026 GMT   notAfter=Dec 30 21:02:09 2026 GMT
+```
+
+Both certificates are current, the apex is served by Railway and `www` by Cloudflare's edge, and
+every `www` entry point lands on the root over HTTPS — the same behaviour recorded on 2026-10-09,
+confirmed again today rather than assumed.
+
 ## 5. A reviewed change published through Railway
 
 | What | Where |
