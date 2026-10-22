@@ -434,11 +434,13 @@ Known gaps, stated rather than hidden:
   test was verified against the live site and the outage half locally. The Railway web service
   reaches PostgreSQL over the project's private network, which is unaffected.
 - **The Azure VM has been deleted, so the rollback target no longer exists.** The VM was deallocated
-  and deleted on 2026-10-22. `az vm show` returns `ResourceNotFound`. The project asked for the VM
-  to stay running until the instructor released it, so this is a deviation, recorded rather than
-  hidden. The resource group `rg-career-platform` still holds the VNET, the public IP, and the
-  network security group. The consequence is in [Rollback](#rollback): going back to Azure now means
-  rebuilding the VM from the records, not repointing DNS at a running server.
+  and deleted on 2026-10-22; `az vm show` returns `ResourceNotFound`. The project says the VM stays
+  running "until the instructor says otherwise", and **the instructor told the class the VM could be
+  deleted**, so this is a released requirement rather than a deviation. The practical consequence
+  stands either way and is in [Rollback](#rollback): going back to Azure now means rebuilding the VM
+  from the records, not repointing DNS at a running server. The resource group
+  `rg-career-platform` still holds the VNET, the public IP, and the network security group — which
+  is how the port 443 rule was recovered for the record above.
 - **No pre-MX delivery test was captured.** The project asks for a message sent to the custom address
   *before* any mail record existed, with the outcome recorded. That test was not run, and MX is now
   published, so it cannot be reconstructed. Marked **unverified** rather than invented.
