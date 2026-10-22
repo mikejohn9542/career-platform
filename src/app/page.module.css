@@ -453,9 +453,8 @@
 /* Shown in place of the project list when the database cannot answer, or when it is empty. */
 .notice {
   margin: 0 0 1.5rem;
-  padding: 1rem 1.25rem;
-  border-left: 3px solid var(--rule, currentColor);
+  max-width: 54ch;
   font-size: 0.95rem;
   line-height: 1.5;
-  opacity: 0.85;
+  opacity: 0.7;
 }
