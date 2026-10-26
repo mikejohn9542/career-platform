@@ -85,10 +85,14 @@ second, and asserts that the second call reports `projects: "available"` with
   its own status code, so the 503 is served by `/api/health`. This gap is recorded in the
   [README limitations](../../README.md#limitations).
 
-## Deployment status: this change is merged but not yet live
+## Deployment status: blocked for four days by a Railway security incident
 
-**As of 2026-10-22 12:35 PDT the live site runs commit `347b069` (2026-10-20), not this change.**
-The cause is a Railway platform outage, not this repository and not the trial's usage:
+**As of 2026-10-22 12:35 PDT the live site ran commit `347b069` (2026-10-20), not this change.**
+The cause was outside this repository and unrelated to the trial's usage. Railway disclosed a
+security incident on 2026-10-21 — an unauthorised party reached the systems holding customer
+environment variables — and paused deployments platform-wide as part of its response. The status
+page presented this as a Major Outage, which is how it was first recorded here; the security notice
+is the actual cause:
 
 - Railway's deployment history shows the last build as `347b069`, `SUCCESS`, 2026-10-20 15:13 PDT.
   Six pushes on 2026-10-22 produced **no deployment at all**.

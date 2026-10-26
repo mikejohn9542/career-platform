@@ -58,5 +58,26 @@ on **2026-10-20**, worked through on **2026-10-22**. Each line names the file th
 - [x] Confirm the live site answers and renders projects from PostgreSQL (2026-10-22) → [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md)
 - [ ] **Open:** confirm the 2026-10-22 deployment reached `SUCCESS` in Railway and `/api/health` answers 200
 - [x] Re-ran the live DNS, HTTPS, and certificate checks on 2026-10-22 → [submission index §4](docs/project-1-submission.md)
-- [ ] **Open:** confirm the Azure VM is running and still serves `3ec9e9c` on SQLite
-- [ ] **Open:** remove the Railway Postgres TCP proxy (it appears to be gone already — the laptop can no longer reach the database)
+- [x] ~~Confirm the Azure VM is running and still serves `3ec9e9c` on SQLite~~ — not applicable: the VM was deleted on 2026-10-22 with the instructor's authorisation → [README → Limitations](README.md#limitations)
+- [x] Remove the Railway Postgres TCP proxy — confirmed gone on 2026-10-26: the Postgres service has no `DATABASE_PUBLIC_URL` and no TCP proxy variable, so the database is reachable only on the private network
+
+## Security incident response (Railway, 2026-10-21)
+
+Railway disclosed that customer environment variables may have been decrypted and read. Background
+and this project's exposure: [README → Third-party security incident](README.md#third-party-security-incident-october-2026).
+
+- [ ] **Open, needs the dashboard:** rotate the PostgreSQL password with **Regenerate** on the
+      Postgres service's Variables tab. Not possible from the CLI — the public GraphQL API exposes no
+      such mutation, and `railway ssh` would mean registering an SSH key. Do **not** hand-edit
+      `POSTGRES_PASSWORD`: it is read only at database creation, so editing it desynchronises the
+      variable from the stored role password and breaks every new connection.
+- [ ] **Open:** redeploy `earnest-clarity` after the rotation, since containers read variables only
+      at startup, then confirm `/api/health` answers 200
+- [ ] **Open:** check both mailboxes for Railway's affected-customer notice and record the outcome
+      either way
+- [ ] **Open:** reissue any Railway API or project token in use — every token created before the
+      incident was invalidated. None is referenced by this repository.
+- [x] Confirm no credential is committed: `.env` and `data/` are gitignored and the database
+      password has never been in the repository
+- [x] Confirm the blast radius: the only secret this project keeps in Railway is the PostgreSQL
+      password, and the database has no public endpoint

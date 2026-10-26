@@ -416,15 +416,51 @@ What was observed, and what was not:
 | Zoho Mail | Free plan, one domain mailbox | — | Keep. Removing it means deleting the MX, SPF, DKIM, and DMARC records too. |
 | Google Analytics 4 | Free | — | Keep, or delete the property and remove the tag from `src/app/layout.tsx`. |
 
+## Third-party security incident (October 2026)
+
+On 2026-10-21 Railway disclosed that an unauthorised party had reached the systems storing customer
+environment variables, and that encrypted variables may have been decrypted and read. Database
+credentials were explicitly in scope. Railway paused deployments platform-wide, rotated its own
+storage credentials, and invalidated every API and project token created before the incident.
+
+**What this project had exposed.** One secret: the PostgreSQL password, held as `DATABASE_URL` on
+the web service and as `POSTGRES_PASSWORD` on the database service. Nothing else. Mail
+authentication lives at Zoho, the GA4 measurement ID is public by design, and no credential has ever
+been committed to this repository — `.env` and `data/` are in `.gitignore`.
+
+**What limited the damage.** The database has no public endpoint. `DATABASE_URL` resolves to
+`postgres.railway.internal:5432`, and the database service has no `DATABASE_PUBLIC_URL` and no TCP
+proxy variable, the temporary proxy used for the migration having been removed once that work
+finished. A leaked password is therefore only usable from inside this project's private network, not
+from the internet.
+
+**Response.** The rotation is performed with Railway's Regenerate control, which changes the
+password inside PostgreSQL and updates the variables that reference it in one step. It is a
+dashboard action: the public GraphQL API exposes no equivalent mutation, and `railway ssh` requires
+registering an SSH key against the account. Editing
+`POSTGRES_PASSWORD` by hand does **not** work: the variable is read only when the database is first
+created, so hand-editing it leaves the stored role password unchanged and desynchronised from the
+variable, and every new connection then fails to authenticate. Because containers read variables
+only at startup, the web service is redeployed afterwards so it picks up the new value.
+**Status: not yet done — see [`TASKS.md`](TASKS.md).**
+
+**What this cost.** Four days of deployment delay, only part of it Railway's. Builds returned for
+Free and Trial workspaces at 23:22 UTC on 2026-10-22, a few hours after the change was merged. It
+still did not deploy until 2026-10-26, because restoring builds does not retroactively build the
+commits pushed while deploys were paused, and no new push had been made in the meantime to trigger
+one. The lesson is that a queued deploy is not a pending deploy: after a provider pause, the build
+has to be asked for again.
+
 ## Limitations
 
 Known gaps, stated rather than hidden:
 
-- **The database-failure behaviour is merged but not yet live.** On 2026-10-22 the live site runs
-  commit `347b069` (2026-10-20). Railway had a platform outage that day with builds disabled for
-  Free and Trial plans, so six pushes produced no deployment and `railway up` answered
-  "Deploys have been paused temporarily". The site stayed up and healthy on the previous build
-  throughout. Evidence and the exact status-page wording:
+- **The database-failure behaviour sat merged but undeployed from 2026-10-22 to 2026-10-26.**
+  Railway paused deployments platform-wide in response to its security incident of 2026-10-21, so
+  six pushes produced no deployment and `railway up` answered "Deploys have been paused
+  temporarily". Builds returned that evening, but nothing re-triggered one, so the change stayed
+  unbuilt until 2026-10-26. The site stayed up and healthy on commit `347b069` throughout. See
+  [Third-party security incident](#third-party-security-incident-october-2026) and
   [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md).
 - **The outage status code is on `/api/health`, not on the page.** During a database outage the
   HTML document answers `200` while `/api/health` answers `503`. The project asks for the page
