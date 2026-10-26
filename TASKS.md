@@ -66,11 +66,13 @@ on **2026-10-20**, worked through on **2026-10-22**. Each line names the file th
 Railway disclosed that customer environment variables may have been decrypted and read. Background
 and this project's exposure: [README → Third-party security incident](README.md#third-party-security-incident-october-2026).
 
-- [ ] **Open, needs the dashboard:** rotate the PostgreSQL password with **Regenerate** on the
-      Postgres service's Variables tab. Not possible from the CLI — the public GraphQL API exposes no
-      such mutation, and `railway ssh` would mean registering an SSH key. Do **not** hand-edit
-      `POSTGRES_PASSWORD`: it is read only at database creation, so editing it desynchronises the
-      variable from the stored role password and breaks every new connection.
+- [x] Rotated the PostgreSQL password on 2026-10-26 with **Regenerate**, found under the Postgres
+      service's **Database → Config → Connection** section, not the Variables tab. Not possible from
+      the CLI — the public GraphQL API exposes no such mutation, and `railway ssh` would mean
+      registering an SSH key. Railway's own guidance rules out hand-editing `POSTGRES_PASSWORD` and
+      running `ALTER USER` alike, because each changes only one side and leaves the variable and the
+      database out of sync. Verified afterwards: `/api/health` answers 200 with `"source":"database"`
+      → [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md#the-degraded-half-observed-in-production-2026-10-26)
 - [x] Confirmed the web service picked up the new credential: Railway created deployment `9d01887a` when the referenced `DATABASE_URL` changed, so no manual redeploy was needed, and `/api/health` answered 200 with `"source":"database"` at 07:48:50Z
 - [ ] **Open:** check both mailboxes for Railway's affected-customer notice and record the outcome
       either way
