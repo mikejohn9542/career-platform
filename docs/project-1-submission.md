@@ -17,6 +17,7 @@ Every requirement below links to the record that answers it. Records written aft
 | Original implementation plan | [plans/2026-09-15-personal-resume-career-platform.md](superpowers/plans/2026-09-15-personal-resume-career-platform.md) |
 | Product context | [PRODUCT.md](../PRODUCT.md) · Design system: [DESIGN.md](../DESIGN.md) |
 | Projects read from PostgreSQL per request | `src/app/page.tsx` (`dynamic = "force-dynamic"`), `src/db/repository.ts` |
+| A clearly labelled entry for this site as a project in progress, added 2026-10-26 | https://michaeljportfolio.me/#projects · statement: [`scripts/sql/add-in-progress-project.sql`](../scripts/sql/add-in-progress-project.sql) · tests: [`tests/integration/add-in-progress-project.test.ts`](../tests/integration/add-in-progress-project.test.ts) |
 | Database-failure behaviour: profile stays, "Projects temporarily unavailable", unhealthy status, recovery without a restart | [README → Database failure behaviour](../README.md#database-failure-behaviour) · test: [evidence/db-outage-test.md](evidence/db-outage-test.md) |
 | Live proof the page reads PostgreSQL per request: `/api/health` → `200 {"source":"database"}` | https://michaeljportfolio.me/api/health · [evidence/db-outage-test.md](evidence/db-outage-test.md#deployed-and-verified-live-2026-10-26) |
 | **Both halves verified in production**: a real failed query gave `503 {"status":"projects_unavailable","source":"snapshot"}` with the projects list labelled and the profile unaffected, then recovery to `200` with no code change | [evidence/db-outage-test.md](evidence/db-outage-test.md#the-degraded-half-observed-in-production-2026-10-26) |
@@ -127,6 +128,14 @@ confirmed again today rather than assumed.
   `VALID`, sync `ACTIVE`, port 8080.
 - **Cloudflare CLI:** `cf dns records list --zone michaeljportfolio.me` → root `CNAME` to the
   Railway service domain (DNS only), `_railway-verify` TXT, `www` A `192.0.2.1` (proxied redirect).
+- **Content write through the dashboard (2026-10-26):** ran
+  `scripts/sql/add-in-progress-project.sql` in the raw-query box on the Postgres service’s Data tab,
+  the laptop having no route to the database since the TCP proxy was removed. The statement is
+  idempotent and was run against PGlite, a real Postgres engine, by three tests before it was run
+  against production: the entry reads back whole, it sorts after the existing projects instead of
+  colliding with the unique `(profile_id, sort_order)` index, and a second run changes nothing.
+  Verified afterwards on the live site: one entry, last in the list, carrying 4 highlights, 6
+  technologies and 2 links, and it appeared **with no redeploy**.
 - **Write test (2026-10-09):** added "SQL" to the Analytics skills through
   `railway run --service Postgres` (one transaction, TLS). It appeared on the live site with no
   redeploy, so the site reads and writes PostgreSQL on Railway.
