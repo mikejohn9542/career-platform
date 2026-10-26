@@ -11,7 +11,7 @@ on **2026-10-20**, worked through on **2026-10-22**. Each line names the file th
 - [x] Handle an empty projects table deliberately, as a healthy state with its own message → `src/lib/content-service.ts`, `src/app/page.tsx`
 - [x] Record an outage test: profile kept, message shown, 503, recovery without a restart → [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md)
 - [ ] **Open:** the HTML document still returns 200 during an outage; the 503 is on `/api/health`. An App Router page cannot set a status code → would need Node-runtime middleware. Recorded in [README → Limitations](README.md#limitations)
-- [ ] **Open:** add a clearly labelled project entry describing this site as a project in progress → a row in Railway's PostgreSQL (needs database access that the laptop currently lacks)
+- [ ] **Open, needs the dashboard:** add a clearly labelled project entry describing this site as a project in progress → run [`scripts/sql/add-in-progress-project.sql`](scripts/sql/add-in-progress-project.sql) in Railway's query console (Postgres service → Data → Query). The laptop cannot reach the database. The statement is idempotent and verified against a real Postgres engine by [`tests/integration/add-in-progress-project.test.ts`](tests/integration/add-in-progress-project.test.ts)
 - [x] Explain why SQLite was the initial database engine → [README → Decisions](README.md#3-sqlite-as-the-initial-engine-postgresql-on-railway)
 
 ## 2. Azure deployment (20 pts)
@@ -29,7 +29,7 @@ on **2026-10-20**, worked through on **2026-10-22**. Each line names the file th
 ## 5. Reviewed change (5 pts)
 
 - [x] Tie a commit to its Railway deployment and to the live behaviour → [submission index → Reviewed changes](docs/project-1-submission.md#reviewed-changes)
-- [ ] **Open:** record the local review and test run for the 2026-10-22 change (tests, lint, typecheck and a local build all passed before the push; add the result once the deployment id is known)
+- [x] Recorded the local review and test run for the change, now that the deployment id exists: 30 tests pass and `tsc --noEmit` is clean before the push, deployment `5fb3597c` built `0313103` → [submission index → Reviewed changes](docs/project-1-submission.md#reviewed-changes)
 
 ## 6. Zoho email (15 pts)
 
