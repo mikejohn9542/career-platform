@@ -56,7 +56,7 @@ on **2026-10-20**, worked through on **2026-10-22**. Each line names the file th
 ## Re-checks before submitting
 
 - [x] Confirm the live site answers and renders projects from PostgreSQL (2026-10-22) → [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md)
-- [ ] **Open:** confirm the 2026-10-22 deployment reached `SUCCESS` in Railway and `/api/health` answers 200
+- [x] Confirmed the deployment reached `SUCCESS` and `/api/health` answers 200 — deployment `5fb3597c` built `0313103` on 2026-10-26 00:19 PDT, and `/api/health` returns `{"status":"ok","source":"database"}` → [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md#deployed-and-verified-live-2026-10-26)
 - [x] Re-ran the live DNS, HTTPS, and certificate checks on 2026-10-22 → [submission index §4](docs/project-1-submission.md)
 - [x] ~~Confirm the Azure VM is running and still serves `3ec9e9c` on SQLite~~ — not applicable: the VM was deleted on 2026-10-22 with the instructor's authorisation → [README → Limitations](README.md#limitations)
 - [x] Remove the Railway Postgres TCP proxy — confirmed gone on 2026-10-26: the Postgres service has no `DATABASE_PUBLIC_URL` and no TCP proxy variable, so the database is reachable only on the private network

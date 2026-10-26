@@ -455,13 +455,11 @@ has to be asked for again.
 
 Known gaps, stated rather than hidden:
 
-- **The database-failure behaviour sat merged but undeployed from 2026-10-22 to 2026-10-26.**
-  Railway paused deployments platform-wide in response to its security incident of 2026-10-21, so
-  six pushes produced no deployment and `railway up` answered "Deploys have been paused
-  temporarily". Builds returned that evening, but nothing re-triggered one, so the change stayed
-  unbuilt until 2026-10-26. The site stayed up and healthy on commit `347b069` throughout. See
-  [Third-party security incident](#third-party-security-incident-october-2026) and
-  [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md).
+- **The degraded half of the database-failure behaviour is not verified on the live site.** The
+  healthy half is: `/api/health` answers `200` with `"source":"database"` in production, which the
+  running application reports only when the query returned rows. Producing the 503 live would mean
+  deliberately breaking the production database, so that path is covered by unit tests and a local
+  run instead. Evidence: [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md).
 - **The outage status code is on `/api/health`, not on the page.** During a database outage the
   HTML document answers `200` while `/api/health` answers `503`. The project asks for the page
   itself to return 503; an App Router page has no API for setting a status. See

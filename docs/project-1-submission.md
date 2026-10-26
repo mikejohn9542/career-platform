@@ -18,6 +18,7 @@ Every requirement below links to the record that answers it. Records written aft
 | Product context | [PRODUCT.md](../PRODUCT.md) · Design system: [DESIGN.md](../DESIGN.md) |
 | Projects read from PostgreSQL per request | `src/app/page.tsx` (`dynamic = "force-dynamic"`), `src/db/repository.ts` |
 | Database-failure behaviour: profile stays, "Projects temporarily unavailable", unhealthy status, recovery without a restart | [README → Database failure behaviour](../README.md#database-failure-behaviour) · test: [evidence/db-outage-test.md](evidence/db-outage-test.md) |
+| Live proof the page reads PostgreSQL per request: `/api/health` → `200 {"source":"database"}` | https://michaeljportfolio.me/api/health · [evidence/db-outage-test.md](evidence/db-outage-test.md#deployed-and-verified-live-2026-10-26) |
 
 ## 2. Architecture diagrams, including email and analytics
 
@@ -130,6 +131,12 @@ confirmed again today rather than assumed.
 - **Update test (2026-10-10 05:07 UTC):** pushed `c1b6ddd` ("say in the footer that the site runs on
   Railway and PostgreSQL"). Railway deployment `06e49d11` built that SHA and reached `SUCCESS` at
   05:08:16 UTC; the footer "Hosted on Railway · Data in PostgreSQL" is live.
+- **Database-failure change (2026-10-26 00:19 PDT):** pushed `0313103`, which carried the
+  content-service change that stops substituting snapshot content for a failed query. Railway
+  deployment `5fb3597c-295e-467d-8df7-d25cf3e48e67` built that SHA and reached `SUCCESS`;
+  `/api/health` then answered `200` with `"source":"database"`. Local review before the push: 30
+  tests pass, `tsc --noEmit` clean. This change had waited since 2026-10-22 because Railway paused
+  deploys after its security incident.
 
 ## Status
 
@@ -142,4 +149,11 @@ confirmed again today rather than assumed.
   survive in `rg-career-platform`; the NSG rules were read back from Azure on 2026-10-22 and are in
   [operating the VM](superpowers/plans/2026-10-01-operate-the-vm.md) → Record.
 - Rolling back to Azure now means rebuilding the VM from the plans: [README → Rollback](../README.md#rollback).
-- Pending: remove the Postgres TCP proxy (Railway dashboard) now that laptop database work is done.
+- The Postgres TCP proxy is gone: the database service has no `DATABASE_PUBLIC_URL` and no proxy
+  variable, so PostgreSQL is reachable only on the project's private network (checked 2026-10-26).
+- **Railway security incident, 2026-10-21.** Customer environment variables may have been decrypted
+  and read, and deploys were paused platform-wide for several days as a result. This project keeps
+  one secret on Railway, the database password, and the database has no public endpoint. Background,
+  exposure, and the rotation procedure:
+  [README → Third-party security incident](../README.md#third-party-security-incident-october-2026).
+  The rotation itself is outstanding and tracked in [TASKS.md](../TASKS.md).

@@ -85,7 +85,7 @@ second, and asserts that the second call reports `projects: "available"` with
   its own status code, so the 503 is served by `/api/health`. This gap is recorded in the
   [README limitations](../../README.md#limitations).
 
-## Deployment status: blocked for four days by a Railway security incident
+## Deployment status: blocked for four days, then deployed and verified on 2026-10-26
 
 **As of 2026-10-22 12:35 PDT the live site ran commit `347b069` (2026-10-20), not this change.**
 The cause was outside this repository and unrelated to the trial's usage. Railway disclosed a
@@ -103,15 +103,41 @@ is the actual cause:
   is this project's plan. Signups are paused. Next update expected 19:45 UTC.
 - The running container is healthy and serving traffic throughout, so the site never went down.
 
-What that means for the behaviour described in this file: it is implemented, unit-tested (30 tests
-pass), type-checked, linted, built cleanly as a production build locally, and verified against a
-running server for the outage case. It is **not yet observable on the live site**. The live check of
-`https://michaeljportfolio.me/api/health` returns `404` until a build runs, because the route does
-not exist in `347b069`.
+What that meant for the behaviour described in this file, as of 2026-10-22: implemented,
+unit-tested (30 tests pass), type-checked, linted, built cleanly as a production build locally, and
+verified against a running server for the outage case — but **not observable on the live site**,
+because `/api/health` did not exist in `347b069` and answered `404`.
 
 | Check | Result (2026-10-22) |
 |---|---|
 | `GET https://michaeljportfolio.me/` | **200**, profile and projects rendered from PostgreSQL |
 | `GET https://michaeljportfolio.me/api/health` | **404** — route not in the deployed commit |
 | Deployed commit | `347b069` (2026-10-20) |
-| Reason the deploy is blocked | Railway platform outage; Trial builds disabled |
+| Reason the deploy is blocked | Railway paused deploys platform-wide after its 2026-10-21 security incident |
+
+### Deployed and verified live, 2026-10-26
+
+Builds returned for Trial workspaces at 23:22 UTC on 2026-10-22, but a restored platform does not
+rebuild commits pushed while it was paused, and nothing had triggered a new build since. Pushing
+`0313103` triggered one through the existing GitHub integration.
+
+- Railway deployment `5fb3597c-295e-467d-8df7-d25cf3e48e67`, **SUCCESS**, 2026-10-26 00:19:10 PDT.
+- Deployed commit `031310342edc7fc6d8f851b5e83d8a721dc7a854`, matching local `main`.
+
+| Check | Result (2026-10-26, from a home network) |
+|---|---|
+| `GET https://michaeljportfolio.me/` | **200**, profile and projects rendered |
+| `GET https://michaeljportfolio.me/api/health` | **200** `{"status":"ok","source":"database","checkedAt":"2026-10-26T07:21:34.261Z"}` |
+| `Cache-Control` on that response | `no-store`, as the route sets |
+| Outage notices present in the page HTML | none, as expected while the database is reachable |
+| Deployed commit | `0313103` |
+
+The `"source":"database"` field is the part worth keeping. Before this deployment, the claim that the
+page reads PostgreSQL on every request rested on the code and on a write test that showed up without
+a redeploy. It is now stated by the running application itself: `source` reports `database` only when
+the query returned rows, and `snapshot` when the fallback was used. A grader can check it without
+access to anything.
+
+What is still **not** verified live is the degraded half. Showing `status: projects_unavailable` with
+a 503 on the live site would mean deliberately breaking the production database, which is not worth
+doing for a demonstration. That half is covered by the unit tests and the local run recorded above.
