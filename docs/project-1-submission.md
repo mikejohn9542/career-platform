@@ -94,7 +94,7 @@ www  certificate: subject=CN=michaeljportfolio.me  issuer=Let's Encrypt YE1
 
 Both certificates are current, the apex is served by Railway and `www` by Cloudflare's edge, and
 every `www` entry point lands on the root over HTTPS — the same behaviour recorded on 2026-10-09,
-confirmed again today rather than assumed.
+confirmed again on 2026-10-22 rather than assumed.
 
 ## 5. A reviewed change published through Railway
 
@@ -102,6 +102,7 @@ confirmed again today rather than assumed.
 |---|---|
 | GitHub → Railway, build, pre-deploy migrate, healthcheck, then traffic | [README → Updating the site](../README.md#updating-the-site) · `railway.json` |
 | Commit `c1b6ddd` → Railway deployment `06e49d11`, `SUCCESS` 2026-10-10 05:08:16 UTC, footer live | [Reviewed changes](#reviewed-changes) below |
+| The substantive reviewed change: commit `0313103` → deployment `5fb3597c`, `SUCCESS` 2026-10-26, reviewed locally first (30 tests, clean type check) and verified live afterwards | [Reviewed changes](#reviewed-changes) below · [evidence/db-outage-test.md](evidence/db-outage-test.md#deployed-and-verified-live-2026-10-26) |
 | Secrets kept out of the repository | `.gitignore` (`.env`, `data/`), Railway variables |
 | How to restore a previous version, code and data | [README → Rollback](../README.md#rollback) |
 
@@ -132,6 +133,7 @@ confirmed again today rather than assumed.
 |---|---|
 | Failure A — application/database dependency: the build passed but PostgreSQL had no tables | [README → Two investigated failures](../README.md#two-investigated-failures) |
 | Failure B — network/DNS: `www` still resolved to the retired VM after cutover | Same |
+| Failure C — a provider security incident: deploys paused, then every credential rotated and provider activity reviewed | [README → Third-party security incident](../README.md#third-party-security-incident-october-2026) |
 | Deliberate lab failure (supplied simulation, labelled): stale A record causing a TLS name mismatch | [evidence/ex05.md](evidence/ex05.md) |
 | Azure-era application/database failure: two different database paths, fixed in `cf8324b` | [evidence/ex03.md](evidence/ex03.md) §3 |
 | Decision 1 — Azure VM vs Railway, with alternatives | [README → Decisions](../README.md#1-move-from-an-azure-vm-to-railway) |
@@ -139,8 +141,7 @@ confirmed again today rather than assumed.
 | Reflection, marked as written afterwards | [README → Retrospective](../README.md#retrospective) |
 | Costs, credits, expiry dates, cleanup plan | [README → Costs, credits, and cleanup](../README.md#costs-credits-and-cleanup) |
 | Limitations and everything marked unverified | [README → Limitations](../README.md#limitations) |
-| Failure C — a provider security incident: deploys paused for days, then every credential rotated | [README → Third-party security incident](../README.md#third-party-security-incident-october-2026) |
-| Outstanding work | [TASKS.md](../TASKS.md) |
+| Requirement-by-requirement checklist, all items closed, with what closed each one | [TASKS.md](../TASKS.md) |
 
 ## Reviewed changes
 
@@ -184,9 +185,11 @@ confirmed again today rather than assumed.
 - The Postgres TCP proxy is gone: the database service has no `DATABASE_PUBLIC_URL` and no proxy
   variable, so PostgreSQL is reachable only on the project's private network (checked 2026-10-26).
 - **Railway security incident, 2026-10-21.** Customer environment variables may have been decrypted
-  and read, and deploys were paused platform-wide for several days as a result. This project keeps
-  one secret on Railway, the database password, and the database has no public endpoint. Background,
-  exposure, and the rotation procedure:
+  and read, and deploys were paused platform-wide as a result. Builds returned for Trial workspaces
+  at 23:22 UTC on 2026-10-22, about a day after the disclosure; the four-day delay to this
+  project's own change came from nothing re-triggering a build once they returned, not from the
+  pause lasting that long. This project keeps one secret on Railway, the database password, and the
+  database has no public endpoint. Background, exposure, and the rotation procedure:
   [README → Third-party security incident](../README.md#third-party-security-incident-october-2026).
   Railway's preliminary report, received 2026-10-23, states that this workspace does not meet the
   criteria for a higher-risk workspace, while noting that this does not rule out compromise.
