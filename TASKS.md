@@ -10,7 +10,7 @@ on **2026-10-20**, worked through on **2026-10-22**. Each line names the file th
 - [x] Stop substituting `profile-snapshot.json` for a failed query → `src/lib/content-service.ts`
 - [x] Handle an empty projects table deliberately, as a healthy state with its own message → `src/lib/content-service.ts`, `src/app/page.tsx`
 - [x] Record an outage test: profile kept, message shown, 503, recovery without a restart → [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md)
-- [ ] **Open, decision not yet made:** the HTML document still returns 200 during an outage; the 503 is on `/api/health`. An App Router page cannot set a status code → would need Node-runtime middleware. Observed live on 2026-10-26 during the credential rotation. Recorded in [README → Limitations](README.md#limitations)
+- [x] **Decided, not fixed:** the HTML document returns 200 during an outage while the 503 is on `/api/health`, because an App Router page cannot set a status code. Closing it would mean putting Node-runtime middleware in the request path, which is not worth doing for a status code days before submission. Kept as a stated limitation → [README → Limitations](README.md#limitations)
 - [x] Added a clearly labelled project entry describing this site as a project in progress (2026-10-26). Ran [`scripts/sql/add-in-progress-project.sql`](scripts/sql/add-in-progress-project.sql) through the raw-query box on the Postgres service’s **Data** tab — the laptop cannot reach the database. Verified on the live site: one entry, last in the list, with 4 highlights, 6 technologies and 2 links, and it appeared without a redeploy → [submission index §1](docs/project-1-submission.md)
 - [x] Explain why SQLite was the initial database engine → [README → Decisions](README.md#3-sqlite-as-the-initial-engine-postgresql-on-railway)
 
@@ -75,9 +75,9 @@ and this project's exposure: [README → Third-party security incident](README.m
       → [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md#the-degraded-half-observed-in-production-2026-10-26)
 - [x] Confirmed the web service picked up the new credential: Railway created deployment `9d01887a` when the referenced `DATABASE_URL` changed, so no manual redeploy was needed, and `/api/health` answered 200 with `"source":"database"` at 07:48:50Z
 - [x] Checked the Zoho mailbox (`michaelj@michaeljportfolio.me`) on 2026-10-26: **no mail from Railway at all**, searching `Railway`, `sender:railway.com` and `security` with spam and trash included. This is the expected result rather than a clear one — Railway’s account email is the LMU address, so a notice would arrive there
-- [ ] **Open:** check `mjohn184@lion.lmu.edu`, the Railway account address, for the affected-customer notice and record the outcome either way
+- [x] Railway's preliminary report arrived 2026-10-23 at the LMU address: this workspace is **not** in the higher-risk set, and rotations already completed after containment need not be repeated. It notes this does not rule out compromise → [README → Third-party security incident](README.md#third-party-security-incident-october-2026)
       either way
-- [ ] **Open:** reissue any Railway API or project token in use — every token created before the
+- [x] No Railway API or project token exists outside this repository, so nothing needed reissuing. Provider activity reviewed on 2026-10-26: GitHub has one collaborator, no deploy keys, and no commit or branch that is not my own → [README → Third-party security incident](README.md#third-party-security-incident-october-2026)
       incident was invalidated. None is referenced by this repository.
 - [x] Confirm no credential is committed: `.env` and `data/` are gitignored and the database
       password has never been in the repository

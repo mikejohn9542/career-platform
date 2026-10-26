@@ -449,6 +449,28 @@ minute, which produced the degraded behaviour on the live site and is recorded i
 [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md#the-degraded-half-observed-in-production-2026-10-26).
 `/api/health` answered `200` with `"source":"database"` afterwards, on the same commit as before.
 
+**Railway's preliminary report, received 2026-10-23.** Railway finished its higher-risk
+notifications at 18:57:54 UTC that day and wrote that this workspace "does not meet the criteria we
+used to identify higher-risk workspaces", while saying plainly that this "does not rule out
+compromise". It asked for three things. Credentials were rotated and the dependent service
+redeployed, both after containment, which the report says does not need repeating. The third was to
+review provider activity, done on 2026-10-26 and recorded below.
+
+**Review of provider activity.** Nothing outside Railway held a credential from this project, so the
+review was narrow by construction:
+
+- **GitHub**, the one integration Railway holds: `mikejohn9542` is the only collaborator, the
+  repository has no deploy keys, every commit in its history is authored and committed by my own two
+  git identities, and the only remote branches are `main` and the original feature branch. Nothing
+  was pushed during or after the incident that is not accounted for in this repository's history.
+- **No API tokens exist outside this repository.** Railway invalidated every token created before
+  the incident, and none was in use anywhere — no CI, no second machine, no saved `.env`.
+- **AI and registry providers: not applicable.** No model-provider key and no registry credential
+  has ever been stored in this project's Railway variables, and the images are built by Railway from
+  this repository rather than pulled from a private registry.
+
+The database password was the whole blast radius, and it has been replaced.
+
 **What this cost.** Four days of deployment delay, only part of it Railway's. Builds returned for
 Free and Trial workspaces at 23:22 UTC on 2026-10-22, a few hours after the change was merged. It
 still did not deploy until 2026-10-26, because restoring builds does not retroactively build the

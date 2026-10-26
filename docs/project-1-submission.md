@@ -188,6 +188,10 @@ confirmed again today rather than assumed.
   one secret on Railway, the database password, and the database has no public endpoint. Background,
   exposure, and the rotation procedure:
   [README → Third-party security incident](../README.md#third-party-security-incident-october-2026).
+  Railway's preliminary report, received 2026-10-23, states that this workspace does not meet the
+  criteria for a higher-risk workspace, while noting that this does not rule out compromise.
+  Provider activity was reviewed on 2026-10-26: GitHub has a single collaborator, no deploy keys,
+  and no commit or branch that is not the author's own; no API token exists outside this repository.
   The password was rotated on 2026-10-26 and the application verified afterwards. The rotation
   briefly produced the database-failure behaviour on the live site, which is recorded in
   [evidence/db-outage-test.md](evidence/db-outage-test.md#the-degraded-half-observed-in-production-2026-10-26).
