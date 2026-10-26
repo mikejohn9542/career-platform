@@ -74,7 +74,8 @@ and this project's exposure: [README → Third-party security incident](README.m
       database out of sync. Verified afterwards: `/api/health` answers 200 with `"source":"database"`
       → [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md#the-degraded-half-observed-in-production-2026-10-26)
 - [x] Confirmed the web service picked up the new credential: Railway created deployment `9d01887a` when the referenced `DATABASE_URL` changed, so no manual redeploy was needed, and `/api/health` answered 200 with `"source":"database"` at 07:48:50Z
-- [ ] **Open:** check both mailboxes for Railway's affected-customer notice and record the outcome
+- [x] Checked the Zoho mailbox (`michaelj@michaeljportfolio.me`) on 2026-10-26: **no mail from Railway at all**, searching `Railway`, `sender:railway.com` and `security` with spam and trash included. This is the expected result rather than a clear one — Railway’s account email is the LMU address, so a notice would arrive there
+- [ ] **Open:** check `mjohn184@lion.lmu.edu`, the Railway account address, for the affected-customer notice and record the outcome either way
       either way
 - [ ] **Open:** reissue any Railway API or project token in use — every token created before the
       incident was invalidated. None is referenced by this repository.
