@@ -4,7 +4,7 @@
 |---|---|
 | **Live site** | **https://michaeljportfolio.me** |
 | **Repository** | https://github.com/mikejohn9542/career-platform |
-| **Final commit SHA** | `563eea3fa79be198f499c5933f156d96d07e2bf5` completes the work. The commit that follows it filled in this row and is the head of `main`; it touches this file only. **Submit the head of `main`**, so that a checkout has this row filled in — `git log -1 --format=%H` on `main` prints it. |
+| **Final commit SHA** | `5f42272ce21961ae33b9267757b4736c41f63920` completes the work. The commit that follows it filled in this row and is the head of `main`; it touches this file only. **Submit the head of `main`** so that a checkout has this row filled in — `git log -1 --format=%H` on `main` prints it. |
 
 Every requirement below links to the record that answers it. Records written after the fact say so.
 
