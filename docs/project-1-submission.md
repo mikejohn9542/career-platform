@@ -4,9 +4,30 @@
 |---|---|
 | **Live site** | **https://michaeljportfolio.me** |
 | **Repository** | https://github.com/mikejohn9542/career-platform |
-| **Final commit SHA** | `PENDING` — filled in with the last commit pushed before submission |
+| **Final commit SHA** | `563eea3fa79be198f499c5933f156d96d07e2bf5` completes the work. The commit that follows it filled in this row and is the head of `main`; it touches this file only. **Submit the head of `main`**, so that a checkout has this row filled in — `git log -1 --format=%H` on `main` prints it. |
 
 Every requirement below links to the record that answers it. Records written after the fact say so.
+
+**Verified live on 2026-10-26, immediately before submission** (commands run, output as shown):
+
+```
+https://michaeljportfolio.me/           -> HTTP 200
+http://michaeljportfolio.me/            -> 301  https://michaeljportfolio.me/
+http://www.michaeljportfolio.me/        -> 301  https://michaeljportfolio.me/
+https://www.michaeljportfolio.me/       -> 301  https://michaeljportfolio.me/
+https://michaeljportfolio.me/privacy    -> HTTP 200
+https://michaeljportfolio.me/api/health -> HTTP 200  {"status":"ok","source":"database"}
+
+apex certificate: subject=CN=michaeljportfolio.me
+                  issuer=C=US, O=Let's Encrypt, CN=YE1
+                  notBefore=Oct  8 21:28:46 2026 GMT   notAfter=Jan  6 21:28:45 2027 GMT
+
+repository, origin/main and the deployed commit all at 563eea3
+33 tests pass  |  tsc --noEmit clean  |  eslint clean  |  working tree clean
+```
+
+The `"source":"database"` in that health response is the application reporting that it served the
+request from PostgreSQL rather than from the build-time snapshot.
 
 ## 1. The application, its spec, and its plans
 

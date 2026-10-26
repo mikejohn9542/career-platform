@@ -51,7 +51,7 @@ on **2026-10-20**, worked through on **2026-10-22**. Each line names the file th
 - [x] Link all eight required records from the submission index → [`docs/project-1-submission.md`](docs/project-1-submission.md)
 - [x] Mark retrospective explanations as written afterward and flag anything unverified → [README → Retrospective](README.md#retrospective), [Limitations](README.md#limitations)
 - [x] Refresh the stale claims about SQLite, the Azure VM, and undecided analytics → `PRODUCT.md`
-- [ ] **Open:** add the final commit SHA → [`docs/project-1-submission.md`](docs/project-1-submission.md)
+- [x] Added the final commit SHA, noting that the head of `main` is the commit to submit → [`docs/project-1-submission.md`](docs/project-1-submission.md)
 
 ## Re-checks before submitting
 
