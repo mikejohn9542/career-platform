@@ -4,7 +4,7 @@
 |---|---|
 | **Live site** | **https://michaeljportfolio.me** |
 | **Repository** | https://github.com/mikejohn9542/career-platform |
-| **Final commit SHA** | `5f42272ce21961ae33b9267757b4736c41f63920` completes the work. The commit that follows it filled in this row and is the head of `main`; it touches this file only. **Submit the head of `main`** so that a checkout has this row filled in — `git log -1 --format=%H` on `main` prints it. |
+| **Final commit SHA** | `5f42272ce21961ae33b9267757b4736c41f63920` completes the work. The commits after it touch this file only, because a row recording the final commit cannot name its own commit. **Submit the head of `main`**, so that a checkout has this row filled in — `git log -1 --format=%H` on `main` prints it. |
 
 Every requirement below links to the record that answers it. Records written after the fact say so.
 
@@ -22,7 +22,7 @@ apex certificate: subject=CN=michaeljportfolio.me
                   issuer=C=US, O=Let's Encrypt, CN=YE1
                   notBefore=Oct  8 21:28:46 2026 GMT   notAfter=Jan  6 21:28:45 2027 GMT
 
-repository, origin/main and the deployed commit all at 563eea3
+repository, origin/main and the deployed commit all in agreement
 33 tests pass  |  tsc --noEmit clean  |  eslint clean  |  working tree clean
 ```
 
