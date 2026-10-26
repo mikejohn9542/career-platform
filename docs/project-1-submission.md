@@ -19,6 +19,7 @@ Every requirement below links to the record that answers it. Records written aft
 | Projects read from PostgreSQL per request | `src/app/page.tsx` (`dynamic = "force-dynamic"`), `src/db/repository.ts` |
 | Database-failure behaviour: profile stays, "Projects temporarily unavailable", unhealthy status, recovery without a restart | [README → Database failure behaviour](../README.md#database-failure-behaviour) · test: [evidence/db-outage-test.md](evidence/db-outage-test.md) |
 | Live proof the page reads PostgreSQL per request: `/api/health` → `200 {"source":"database"}` | https://michaeljportfolio.me/api/health · [evidence/db-outage-test.md](evidence/db-outage-test.md#deployed-and-verified-live-2026-10-26) |
+| **Both halves verified in production**: a real failed query gave `503 {"status":"projects_unavailable","source":"snapshot"}` with the projects list labelled and the profile unaffected, then recovery to `200` with no code change | [evidence/db-outage-test.md](evidence/db-outage-test.md#the-degraded-half-observed-in-production-2026-10-26) |
 
 ## 2. Architecture diagrams, including email and analytics
 
@@ -116,6 +117,7 @@ confirmed again today rather than assumed.
 | Reflection, marked as written afterwards | [README → Retrospective](../README.md#retrospective) |
 | Costs, credits, expiry dates, cleanup plan | [README → Costs, credits, and cleanup](../README.md#costs-credits-and-cleanup) |
 | Limitations and everything marked unverified | [README → Limitations](../README.md#limitations) |
+| Failure C — a provider security incident: deploys paused for days, then every credential rotated | [README → Third-party security incident](../README.md#third-party-security-incident-october-2026) |
 | Outstanding work | [TASKS.md](../TASKS.md) |
 
 ## Reviewed changes
@@ -156,4 +158,6 @@ confirmed again today rather than assumed.
   one secret on Railway, the database password, and the database has no public endpoint. Background,
   exposure, and the rotation procedure:
   [README → Third-party security incident](../README.md#third-party-security-incident-october-2026).
-  The rotation itself is outstanding and tracked in [TASKS.md](../TASKS.md).
+  The password was rotated on 2026-10-26 and the application verified afterwards. The rotation
+  briefly produced the database-failure behaviour on the live site, which is recorded in
+  [evidence/db-outage-test.md](evidence/db-outage-test.md#the-degraded-half-observed-in-production-2026-10-26).

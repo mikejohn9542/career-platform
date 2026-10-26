@@ -10,7 +10,7 @@ on **2026-10-20**, worked through on **2026-10-22**. Each line names the file th
 - [x] Stop substituting `profile-snapshot.json` for a failed query → `src/lib/content-service.ts`
 - [x] Handle an empty projects table deliberately, as a healthy state with its own message → `src/lib/content-service.ts`, `src/app/page.tsx`
 - [x] Record an outage test: profile kept, message shown, 503, recovery without a restart → [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md)
-- [ ] **Open:** the HTML document still returns 200 during an outage; the 503 is on `/api/health`. An App Router page cannot set a status code → would need Node-runtime middleware. Recorded in [README → Limitations](README.md#limitations)
+- [ ] **Open, decision not yet made:** the HTML document still returns 200 during an outage; the 503 is on `/api/health`. An App Router page cannot set a status code → would need Node-runtime middleware. Observed live on 2026-10-26 during the credential rotation. Recorded in [README → Limitations](README.md#limitations)
 - [ ] **Open, needs the dashboard:** add a clearly labelled project entry describing this site as a project in progress → run [`scripts/sql/add-in-progress-project.sql`](scripts/sql/add-in-progress-project.sql) in Railway's query console (Postgres service → Data → Query). The laptop cannot reach the database. The statement is idempotent and verified against a real Postgres engine by [`tests/integration/add-in-progress-project.test.ts`](tests/integration/add-in-progress-project.test.ts)
 - [x] Explain why SQLite was the initial database engine → [README → Decisions](README.md#3-sqlite-as-the-initial-engine-postgresql-on-railway)
 
@@ -71,8 +71,7 @@ and this project's exposure: [README → Third-party security incident](README.m
       such mutation, and `railway ssh` would mean registering an SSH key. Do **not** hand-edit
       `POSTGRES_PASSWORD`: it is read only at database creation, so editing it desynchronises the
       variable from the stored role password and breaks every new connection.
-- [ ] **Open:** redeploy `earnest-clarity` after the rotation, since containers read variables only
-      at startup, then confirm `/api/health` answers 200
+- [x] Confirmed the web service picked up the new credential: Railway created deployment `9d01887a` when the referenced `DATABASE_URL` changed, so no manual redeploy was needed, and `/api/health` answered 200 with `"source":"database"` at 07:48:50Z
 - [ ] **Open:** check both mailboxes for Railway's affected-customer notice and record the outcome
       either way
 - [ ] **Open:** reissue any Railway API or project token in use — every token created before the

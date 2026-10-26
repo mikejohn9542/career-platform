@@ -442,7 +442,12 @@ registering an SSH key against the account. Editing
 created, so hand-editing it leaves the stored role password unchanged and desynchronised from the
 variable, and every new connection then fails to authenticate. Because containers read variables
 only at startup, the web service is redeployed afterwards so it picks up the new value.
-**Status: not yet done — see [`TASKS.md`](TASKS.md).**
+**Done on 2026-10-26.** The password was regenerated, the database restarted, and Railway created a
+new deployment of the web service when its referenced `DATABASE_URL` changed. The gap between those
+two restarts left the application holding a credential the database no longer accepted for about a
+minute, which produced the degraded behaviour on the live site and is recorded in
+[`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md#the-degraded-half-observed-in-production-2026-10-26).
+`/api/health` answered `200` with `"source":"database"` afterwards, on the same commit as before.
 
 **What this cost.** Four days of deployment delay, only part of it Railway's. Builds returned for
 Free and Trial workspaces at 23:22 UTC on 2026-10-22, a few hours after the change was merged. It
@@ -455,11 +460,13 @@ has to be asked for again.
 
 Known gaps, stated rather than hidden:
 
-- **The degraded half of the database-failure behaviour is not verified on the live site.** The
-  healthy half is: `/api/health` answers `200` with `"source":"database"` in production, which the
-  running application reports only when the query returned rows. Producing the 503 live would mean
-  deliberately breaking the production database, so that path is covered by unit tests and a local
-  run instead. Evidence: [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md).
+- **Only a credential failure has been seen in production, not an unreachable database.** Both
+  halves of the behaviour are now verified live — the credential rotation of 2026-10-26 produced a
+  genuine failed query, and `/api/health` answered 503 with the projects list labelled unavailable
+  while the rest of the page rendered. What that did not exercise is a database that cannot be
+  reached at all, for example a network outage or a stopped service. That case is covered by the
+  unit tests. Evidence:
+  [`docs/evidence/db-outage-test.md`](docs/evidence/db-outage-test.md#the-degraded-half-observed-in-production-2026-10-26).
 - **The outage status code is on `/api/health`, not on the page.** During a database outage the
   HTML document answers `200` while `/api/health` answers `503`. The project asks for the page
   itself to return 503; an App Router page has no API for setting a status. See

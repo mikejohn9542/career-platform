@@ -138,6 +138,40 @@ a redeploy. It is now stated by the running application itself: `source` reports
 the query returned rows, and `snapshot` when the fallback was used. A grader can check it without
 access to anything.
 
-What is still **not** verified live is the degraded half. Showing `status: projects_unavailable` with
-a 503 on the live site would mean deliberately breaking the production database, which is not worth
-doing for a demonstration. That half is covered by the unit tests and the local run recorded above.
+### The degraded half, observed in production, 2026-10-26
+
+This was not going to be demonstrated live: producing a 503 on the real site would have meant
+breaking the production database on purpose. The credential rotation forced by Railway's security
+incident produced it anyway, and it was captured as it happened.
+
+Rotating the password through Railway's Regenerate control restarts the database immediately, while
+the web service keeps the old password until its own container restarts, because containers read
+variables only at startup. For about a minute the running application held a credential the database
+no longer accepted — a real failed query against a reachable database, which is exactly the
+condition this behaviour exists for.
+
+| Time (UTC) | `/api/health` | Page | Notice in the HTML |
+|---|---|---|---|
+| 07:47:41 | **503** `{"status":"projects_unavailable","source":"snapshot"}` | **200** | present |
+| 07:48:50 | **200** `{"status":"ok","source":"database"}` | **200** | gone |
+
+The notice as served, copied from the response body:
+
+> Projects temporarily unavailable. Everything else on this page is unaffected, and the projects
+> return on the next refresh once the database is reachable.
+
+What this confirms, on the live site rather than in a test:
+
+- The failure is **labelled, not hidden.** `source` reported `snapshot`, and the projects list was
+  empty with the notice shown, instead of stale snapshot projects being passed off as current.
+- The rest of the page was **unaffected** — the profile rendered normally throughout.
+- The status code is **visible to a machine**: `/api/health` answered 503 while the document stayed
+  200, which is the documented split.
+- **Recovery needed no intervention.** The deployed commit was `1b3bcc7` before, during, and after;
+  only the environment changed. Railway created deployment `9d01887a` when the referenced variable
+  changed, and the next request after the switch read the database again.
+
+Two caveats, so this is not read as more than it is. The 503 was observed while the previous
+container was still serving traffic, and the deployment list timestamps its entries at creation, so
+the exact moment traffic switched is not pinned down to the second. And this was a credential
+failure, not an unreachable host; a network-level outage is covered by the unit tests above.
