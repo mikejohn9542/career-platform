@@ -18,6 +18,12 @@ describe("middleware", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
+  it("redirects plain HTTP on the AWS test subdomain to HTTPS", () => {
+    const response = middleware(request("http://aws.michaeljportfolio.me/privacy", { host: "aws.michaeljportfolio.me", "x-forwarded-proto": "http" }));
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://aws.michaeljportfolio.me/privacy");
+  });
+
   it("never redirects Railway's healthcheck or localhost", () => {
     for (const host of ["healthcheck.railway.app", "localhost:3000"]) {
       const response = middleware(request(`http://${host}/`, { host, "x-forwarded-proto": "http" }));

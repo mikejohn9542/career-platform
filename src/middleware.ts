@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-// Hosts served through Railway's proxy, which terminates TLS and sets X-Forwarded-Proto.
+// Hosts served behind a TLS-terminating proxy that sets X-Forwarded-Proto: Railway's proxy today,
+// and Nginx on the AWS instance for aws.michaeljportfolio.me.
 // Railway's healthcheck (healthcheck.railway.app) and localhost are deliberately not listed.
-const PUBLIC_HOST = /^(www\.)?michaeljportfolio\.me$|\.up\.railway\.app$/i;
+const PUBLIC_HOST = /^(www\.|aws\.)?michaeljportfolio\.me$|\.up\.railway\.app$/i;
 
 function firstValue(header: string | null): string {
   return (header ?? "").split(",")[0].trim().toLowerCase();

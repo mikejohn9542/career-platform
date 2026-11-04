@@ -1,0 +1,23 @@
+[Unit]
+Description=career-platform (Next.js) on 127.0.0.1:3000
+Documentation=https://github.com/mikejohn9542/career-platform
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/career-platform
+# Holds DATABASE_URL, DATABASE_CA_CERT_PATH, NODE_ENV and PORT.
+# Root-owned, chmod 600: it is the only place the database password exists on this host.
+EnvironmentFile=/etc/career-platform.env
+ExecStart=/usr/bin/npm run start
+# Railway gave this for free via restartPolicyType=ON_FAILURE. On EC2 nothing restarts the app
+# unless it is declared here, and section 10's reboot test is what catches a missing unit.
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
