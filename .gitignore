@@ -33,3 +33,6 @@ src/generated/profile-snapshot.json
 
 # Impeccable local review captures
 .impeccable/review/
+
+# Local-only record of IPs, account ids and endpoints referenced by migration-notes.md
+migration-secrets.local.md
