@@ -364,3 +364,49 @@ Added to `known_hosts` after comparing, so no blind fingerprint prompt was accep
 Instance as found on first login: Ubuntu 26.04.1 LTS, kernel 7.0.0-1016-aws, **908 MiB RAM, 0 B
 swap**, 19 GB disk with 17 GB free, no Node, **no PostgreSQL client**. The guide states Ubuntu
 26.04 ships the PostgreSQL 18 client; on this AMI it is not preinstalled and must be apt-installed.
+
+### Tasks 6-7 — Provision and restore
+
+Installed: Node v22.23.4 (NodeSource), npm 10.9.9, nginx 1.28.3, certbot 4.0.0,
+psql/pg_restore 18.6. Swap: 2 GiB at `/swapfile`, in `/etc/fstab`.
+
+**Build:** 70 seconds, 52 MiB of swap used, 606 MiB RAM free afterwards, `.next` 73 MB. The plan
+predicted 3-8 minutes; the real figure was far lower. Swap was still used, so it was not wasted.
+
+**TLS to RDS — the predicted failure, confirmed.** An unencrypted connection is refused:
+
+```
+FATAL: no pg_hba.conf entry for host "172.31.14.34", user "postgres",
+       database "postgres", no encryption
+```
+
+That is exactly the error the plan's Review Focus predicted, and it reads like a firewall problem.
+With the CA bundle at `/etc/rds-ca.pem` and `sslmode=verify-full`, the connection succeeds over
+**TLSv1.3 / TLS_AES_256_GCM_SHA384**. Note `rds.force_ssl` is not a recognised parameter on
+PostgreSQL 18, so enforcement had to be proven by attempting `sslmode=disable` rather than read
+from configuration.
+
+**Restore:** `pg_restore` exit 0 in 355 ms. Row counts after restore, after migrations, and in the
+original backup are all identical:
+
+| | backup | restored | after `db:migrate` |
+| --- | --- | --- | --- |
+| total rows | 69 | 69 | 69 |
+| projects | 3 | 3 | 3 |
+
+All three slugs present: `datathon-ems-dispatch`, `llm-manager`, `michaeljportfolio-me`.
+`db:seed` was never run.
+
+**Health on the instance:** `GET /api/health` → `200 {"status":"ok","source":"database"}`.
+Home page renders 55,209 bytes containing all three project titles.
+
+**Finding fixed during the task.** The app was listening on `*:3000`, not loopback. The security
+group blocks 3000 from the internet so it was not exposed, but it answered on the instance's
+private address and the Nginx config comment claimed otherwise. Cause: `next start` defaults to
+`0.0.0.0` and ignores `HOSTNAME` (that variable works only in standalone mode). Fixed by passing
+`--hostname 127.0.0.1` in the systemd unit (commit `f6eb66a`). Verified afterwards: listener is
+`127.0.0.1:3000`, and the private address refuses connections.
+
+**Environment file note.** `DATABASE_URL` contains `&` before `sslrootcert`. systemd's
+`EnvironmentFile` does not shell-parse, so it was always safe there, but sourcing the file in bash
+truncated the value at the `&`. The value is now quoted so both readers handle it.
