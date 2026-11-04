@@ -11,7 +11,11 @@ WorkingDirectory=/opt/career-platform
 # Holds DATABASE_URL, DATABASE_CA_CERT_PATH, NODE_ENV and PORT.
 # Root-owned, chmod 600: it is the only place the database password exists on this host.
 EnvironmentFile=/etc/career-platform.env
-ExecStart=/usr/bin/npm run start
+# --hostname pins the listener to loopback. `next start` defaults to 0.0.0.0 and ignores the
+# HOSTNAME environment variable (that is standalone-mode only), so without this flag the app
+# listens on every interface and is reachable from inside the VPC. The security group already
+# blocks 3000 from the internet; this closes it at the process as well.
+ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1
 # Railway gave this for free via restartPolicyType=ON_FAILURE. On EC2 nothing restarts the app
 # unless it is declared here, and section 10's reboot test is what catches a missing unit.
 Restart=on-failure
