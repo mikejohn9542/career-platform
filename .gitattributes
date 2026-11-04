@@ -1,0 +1,7 @@
+# These files are copied onto the Ubuntu EC2 instance. Windows checkouts would otherwise give
+# them CRLF endings, which breaks deploy.sh's shebang ("bad interpreter: /usr/bin/env bash^M")
+# and can upset systemd unit parsing. Force LF regardless of platform.
+deploy/** text eol=lf
+*.sh text eol=lf
+*.service text eol=lf
+*.pem text eol=lf
