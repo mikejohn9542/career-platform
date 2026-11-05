@@ -410,3 +410,141 @@ private address and the Nginx config comment claimed otherwise. Cause: `next sta
 **Environment file note.** `DATABASE_URL` contains `&` before `sslrootcert`. systemd's
 `EnvironmentFile` does not shell-parse, so it was always safe there, but sourcing the file in bash
 truncated the value at the `&`. The value is now quoted so both readers handle it.
+
+## Section 10 — Verification at the test subdomain (2026-11-05)
+
+Scope: build and verify only. Railway served production for the whole of this section; the apex
+record was never touched.
+
+### Two blockers hit first
+
+**The operator IP had changed** from `<OPERATOR-IP>` to a new address, so SSH timed out against the
+section-8 security group rule. Replaced the single `/32` with the current address: added the new
+rule, revoked the old one, and confirmed port 22 still lists exactly one source. The posture is
+unchanged — one address, not a widened range.
+
+**The AWS session had expired** overnight. On the first `aws login` the browser was signed in as
+the account root, and the CLI offered to repoint the `isba-4775` profile at
+`arn:aws:iam::<AWS-ACCOUNT-ID>:root`. That prompt was never answered (the command had no stdin and
+exited), so nothing was overwritten. Re-authenticated as `isba-student` instead. Root was not used
+at any point.
+
+### DNS
+
+`A` record `aws` → Elastic IP, proxy disabled. Resolves to the Elastic IP itself rather than a
+Cloudflare proxy address via both `1.1.1.1` and `8.8.8.8`, which is what makes HTTP-01 validation
+possible.
+
+### Certificate
+
+Installed `nginx-aws-bootstrap.conf` first, proved the challenge path answered from the public
+internet (`/.well-known/acme-challenge/probe` → 200 from the laptop), then issued the certificate
+with `certbot certonly --webroot`. Replaced it with `nginx-aws.conf`, `nginx -t` clean, reloaded.
+The split-config ordering predicted in `deploy/README.md` was necessary exactly as written.
+
+| Check | Result |
+| --- | --- |
+| Subject | `CN=aws.michaeljportfolio.me` |
+| Issuer | Let's Encrypt |
+| Valid | 2026-11-05 → 2027-02-03 |
+| Trust | `curl` accepted it with no `-k`, so the chain validates against the system store |
+
+Registered **without an email address** (`--register-unsafely-without-email`), so Let's Encrypt
+has no contact address for this account and will not send expiry warnings. Renewal is automated by
+the `certbot.timer` unit, so warnings are a backstop rather than the mechanism — but if automated
+renewal ever breaks, nothing will tell you. Addable later with
+`sudo certbot update_account --email <address>`.
+
+### HTTPS and redirect
+
+| Request | Result |
+| --- | --- |
+| `curl -sI http://aws.michaeljportfolio.me/` | `308 Permanent Redirect` |
+| `curl -sIL http://aws.michaeljportfolio.me/` | 1 redirect, final `https://aws.michaeljportfolio.me/`, `200` |
+| `curl -sI https://aws.michaeljportfolio.me/` | `200 OK` |
+
+### Content, against production
+
+| Check | AWS | Railway |
+| --- | --- | --- |
+| Home page size | 55,153 bytes | 55,153 bytes |
+| `Datathon` | present | present |
+| `LLM Manager` | present | present |
+| `michaeljportfolio.me — this site` | present | present |
+| `/api/health` | `200 {"status":"ok","source":"database"}` | — |
+| `/privacy` | `200`, 24,592 bytes | — |
+| `/michael-johnson-resume.pdf` | `200`, 91,150 bytes, `application/pdf`, starts `%PDF-` | — |
+
+Identical page size on both hosts is the strongest single signal that the restored data renders the
+same as production. `source":"database"` proves the app is reading RDS, not the bundled snapshot
+fallback.
+
+### Writes persist across an app restart
+
+Row baseline before: 13 content tables, 69 rows (`__drizzle_migrations` excluded).
+
+A dedicated `migration_write_test` table was used rather than inserting into a content table.
+Inserting into `projects` or `project_media` would have changed what the page renders, and the
+claim under test — that data lives in RDS and not in the app's own process — does not need a
+content row to prove it.
+
+Inserted one row, `systemctl restart career-platform`, row still present with its original
+`created_at`, health still `200 source=database`. Table dropped afterwards; back to 13 tables and
+69 rows, and `information_schema` confirms the probe table is gone.
+
+### Reboot, unattended
+
+`systemctl reboot`, then nothing but waiting.
+
+| Check | Result |
+| --- | --- |
+| Boot id | changed (`aebe4b66…` → `58b77cad…`), so it really rebooted |
+| `career-platform` | `active` |
+| `nginx` | `active` |
+| Both `is-enabled` | `enabled` — checked before the reboot, which is what makes the result meaningful |
+| Swap | 2.0 GiB present from `/etc/fstab`, not a one-off |
+| Listener | still `127.0.0.1:3000` only |
+| App ready | 1,772 ms after the unit started |
+| `/api/health` from the internet | `200 {"status":"ok","source":"database"}` |
+
+During the boot window Nginx answered before the app was up, returning `502 Bad Gateway` for a few
+seconds. Expected, and it cleared without intervention — but it means a reboot is not a zero-downtime
+operation. Railway's rolling deploys hid this; on a single instance it is visible.
+
+### Security posture
+
+| Check | Result | How |
+| --- | --- | --- |
+| Database reachable from the laptop | No — connection timed out | TCP probe to port 5432 |
+| Database has a public address | No (`PubliclyAccessible: false`) | `describe-db-instances` |
+| Database only reachable from the app | Port 5432 allows one source *group*, no CIDR at all | `describe-security-groups` |
+| SSH restricted | Port 22 allows exactly one `/32`, the current operator address | `describe-security-group-rules` |
+| Instance | `t3.micro`, IMDSv2 `required`, 20 GB gp3, encrypted | `describe-instances`, `describe-volumes` |
+| Database | `db.t3.micro`, PostgreSQL 18.6, Single-AZ, 20 GB, encrypted | `describe-db-instances` |
+| Backup retention | **1 day** — free-plan ceiling, not the guide's 7 | `describe-db-instances` |
+
+**Marked unverified:** "SSH refused from an address other than yours" was confirmed by reading the
+rule — a single `/32` — not by attempting a connection from a second address, which this session
+had no vantage point to do. The configuration permits no other source; that is weaker evidence
+than a live refusal and is recorded as such.
+
+**Still a deviation:** backup retention is 1 day, so the worst-case data loss from relying on
+automated RDS backups alone is 24 hours rather than the 7-day window the guide asks for. The tested
+logical dump in OneDrive remains the real recovery path.
+
+### Certificate renewal
+
+`sudo certbot renew --dry-run` → exit 0, `Congratulations, all simulated renewals succeeded`,
+`no renewal failures`. The `certbot.timer` unit is active and scheduled. The renewal config records
+`authenticator = webroot` with `webroot_path = /var/www/html`, which is the same path
+`nginx-aws.conf` serves `/.well-known/acme-challenge/` from — so renewals keep working after the
+switch to HTTPS, which the HTTP server block was written to allow.
+
+### Section 10 result
+
+Every check in the plan's Task 8 passed. Two things are recorded as caveats rather than passes:
+the SSH restriction was verified by configuration rather than by a refused connection, and backup
+retention is 1 day instead of 7.
+
+Railway still serves production. The apex DNS record was not touched. Cutover (guide section 11) is
+a separate decision and has not been made.
