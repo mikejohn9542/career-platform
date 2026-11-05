@@ -60,8 +60,23 @@ if [[ "$NODE_MAJOR" != "22" ]]; then
   exit 1
 fi
 
-echo "==> pulling"
-git pull --ff-only
+# `git pull` can replace this very file while bash is still reading it, which makes the rest of
+# the run a mix of old and new logic. (That is exactly what happened the first time the env-loading
+# fix was deployed: the pull brought the new script in but the old one kept executing and failed on
+# a missing DATABASE_URL.) Compare the script's own hash across the pull and re-exec if it moved.
+SELF="$(readlink -f "$0")"
+if [[ "${1:-}" != "--already-pulled" ]]; then
+  SELF_BEFORE="$(sha256sum "$SELF" | cut -d" " -f1)"
+  echo "==> pulling"
+  git pull --ff-only
+  SELF_AFTER="$(sha256sum "$SELF" | cut -d" " -f1)"
+  if [[ "$SELF_BEFORE" != "$SELF_AFTER" ]]; then
+    echo "==> deploy.sh itself changed in that pull; re-executing the new version"
+    exec bash "$SELF" --already-pulled
+  fi
+else
+  echo "==> pull already done by the previous version of this script"
+fi
 
 echo "==> installing dependencies"
 npm ci
