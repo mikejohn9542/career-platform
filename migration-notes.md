@@ -548,3 +548,140 @@ retention is 1 day instead of 7.
 
 Railway still serves production. The apex DNS record was not touched. Cutover (guide section 11) is
 a separate decision and has not been made.
+
+## Final whole-branch review and fix pass (2026-11-05)
+
+A fresh reviewer with no part in building this read the whole branch: 2 Critical, 8 Important,
+9 Minor, 9 items it declined to judge. I verified both Criticals myself before changing anything,
+because a review is evidence, not a verdict.
+
+### Critical 1 — `deploy.sh` could not complete, and had never been run
+
+`npm run db:migrate` runs in the deploy script's own shell. The script never loaded
+`/etc/career-platform.env`, and `scripts/migrate.ts` only reads `dotenv/config`, which looks for a
+repo-root `.env` that is gitignored and therefore absent from the instance. So the script pulled,
+installed, spent 70 seconds building — and then exited 1 on `DATABASE_URL is not set`, with
+`set -euo pipefail` stopping it **before** the restart. New code on disk, old process still serving
+it, and `git log` claiming the fix was deployed.
+
+It was never caught because the first build was done by hand with `DATABASE_URL` exported in the SSH
+session. The script inherited an assumption from a session that no longer existed.
+
+Fixed: reads the env file with `grep`/`cut` (sourcing truncates the value at the `&` before
+`sslrootcert`), checks the Node major version, stops the service before building, and retries the
+health check for 40 seconds.
+
+**Verified by running it:** exit 0, and the health check passed on attempt 2 — direct proof that the
+old immediate check would have failed a deploy that worked.
+
+**A further defect surfaced during that verification.** The first run still failed, and the reason
+was not the fix: `git pull` replaced `deploy.sh` while bash was executing it, so the run continued
+on the old logic and died on the error the fix had already removed. Bash reads a script by byte
+offset, so a half-old, half-new script can execute. The script now hashes itself across the pull and
+re-execs. The reviewer did not find this one; running the thing did.
+
+### Critical 2 — `pg` was discarding the entire TLS change
+
+`pg`'s `ConnectionParameters` applies `parse(connectionString)` **over** the explicit pool config.
+Our documented `DATABASE_URL` carries `sslmode=verify-full` and `sslrootcert` for libpq's benefit,
+so it replaced the CA the code had read and dropped `rejectUnauthorized`. Measured against this
+repo's own `pg`:
+
+| `DATABASE_URL` | what the code supplied | what actually reached TLS |
+| --- | --- | --- |
+| no ssl params | `{ca, rejectUnauthorized: true}` | same |
+| `sslmode=verify-full&sslrootcert=...` (ours) | same | **the URL's CA; `rejectUnauthorized` undefined** |
+| `sslmode=require` | same | **`{}`** |
+| `sslmode=disable` | same | **`false`** |
+
+Three consequences. The branch's only application code change was inert in production — it worked
+solely because the URL independently named the same file. The `rejectUnauthorized: true` the tests
+asserted never reached the handshake. And the failure mode this whole change was written to prevent
+was still wide open: write the more commonly documented `?sslmode=require`, with
+`DATABASE_CA_CERT_PATH` set perfectly correctly, and the effective config becomes `{}` → verify
+against the public root store → Amazon's private RDS CA is absent → the first query fails →
+`content-service.ts` swallows it → the site serves a page with **no projects**, `/api/health`
+returns 503, and `systemctl is-active` still says `active`.
+
+Fixed: `poolConfigFrom()` strips the TLS query parameters whenever `DATABASE_CA_CERT_PATH` is set,
+making the code the single authority for the Node pool and leaving the URL intact for `psql` and
+`pg_restore`. With no CA path set the URL is untouched, so Railway's parameterless URL still works.
+
+**Verified on the live database, server-side:** `pg_stat_ssl` reports every application connection
+as `TLSv1.3 / TLS_AES_256_GCM_SHA384`.
+
+I declined one part of the suggested fix: an assert refusing to connect without TLS to a non-local
+host. Railway's `DATABASE_URL` has no `sslmode` and a non-local host, so that assert would break
+production the moment this branch merged.
+
+### The highest-value fix: seeding is now guarded, not just commented against
+
+`deploy.sh` carried a prose warning that `npm run db:seed` destroys `michaeljportfolio-me`, which
+exists only in the database. A comment stops nobody. `assertSafeToSeed()` now refuses to seed a
+database that already holds projects unless `--force`, and `scripts/seed.ts` calls it.
+
+**Verified against the real RDS database, read-only** — the guard alone, never the seed:
+
+```
+GUARD FIRED: Refusing to seed: the target database already contains 3 project(s)
+(datathon-ems-dispatch, llm-manager, michaeljportfolio-me). ...
+```
+
+Row count afterwards: 13 tables, 69 rows, unchanged.
+
+I deliberately did **not** run `db:seed` against RDS to test this end to end. Testing a guard by
+firing the destructive command at live data is the wrong trade, and the standing constraint forbids
+it. The refusal path is proven on real Postgres in four integration tests and once against RDS
+itself; the `--force` path is proven only in tests.
+
+### Also fixed
+
+- **A CA file that is empty or not a certificate now throws.** A truncated or failed download left a
+  file `readFileSync` accepted and Node's TLS treated as "use the public root store" — the same
+  silent empty-project outcome.
+- **The tests now assert what `pg` resolves**, via `Client.connectionParameters`, instead of what we
+  hand to the `Pool`. That is precisely why they passed against the broken behavior. The CA fixture
+  is resolved from the test file rather than `process.cwd()`.
+- **`deploy/README.md`**: `DATABASE_URL` is quoted, and the precedence claim now describes what `pg`
+  actually does rather than the reverse.
+- **The unit**: `Restart=always` (a clean `exit 0` is still an outage), plus `NoNewPrivileges`,
+  `PrivateTmp`, `PrivateDevices`, `ProtectSystem=full`, `ProtectHome=read-only`,
+  `ProtectKernelTunables`, `ProtectKernelModules`, `ProtectControlGroups`, `RestrictSUIDSGID`,
+  `RestrictRealtime`. Confirmed live with `systemctl show`.
+
+Tests: **49 passed**, up from 39. `tsc` clean, lint clean.
+
+### Deferred, and why it matters
+
+**The app still runs as `ubuntu`, which is in the sudo group.** Code execution in the Next.js
+process therefore means root on the box. The sandboxing above removes the cheap escalation routes
+but not this one; the real fix is a dedicated service account, which means re-chowning
+`/opt/career-platform` and `.next/cache` and re-testing the whole build-and-reboot chain. The
+instance is not serving production, so I deferred it — but it is a **blocker before any cutover**,
+not a nice-to-have.
+
+### Re-verification after the fix pass
+
+Everything was re-checked, because the unit changed and a reboot test only means something if the
+machine really rebooted.
+
+| Check | Result |
+| --- | --- |
+| `deploy.sh` end to end | exit 0, healthy on attempt 2 |
+| App connections encrypted | `TLSv1.3 / TLS_AES_256_GCM_SHA384` per `pg_stat_ssl` |
+| Sandboxing live | `NoNewPrivileges=yes`, `PrivateTmp=yes`, `ProtectSystem=full`, `ProtectHome=read-only`, `Restart=always` |
+| Listener | still `127.0.0.1:3000` only |
+| Reboot | new boot id `a1035433...`, uptime 0 min, app + nginx `active`, swap 2.0 GiB |
+| Health from the internet | `200 {"status":"ok","source":"database"}` |
+| Home page | 55,153 bytes on AWS and on Railway — identical |
+| All three projects | present on both |
+| `/privacy`, resume PDF | `200`; PDF exactly 91,150 bytes |
+| Seed guard | fires against real RDS data, naming all three projects |
+| Rows | 13 tables, 69 rows |
+
+**One false pass caught.** The first reboot re-test returned `200` about twenty seconds after
+`systemctl reboot`, and the boot id I printed was the pre-reboot one — the old server simply had not
+dropped yet. A reboot test that races the reboot proves nothing. Re-done by waiting for SSH and
+reading the new boot id.
+
+Railway still serves production. `main` is untouched. No cutover.
