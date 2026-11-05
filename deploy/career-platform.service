@@ -18,10 +18,28 @@ EnvironmentFile=/etc/career-platform.env
 ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1
 # Railway gave this for free via restartPolicyType=ON_FAILURE. On EC2 nothing restarts the app
 # unless it is declared here, and section 10's reboot test is what catches a missing unit.
-Restart=on-failure
+# `always` rather than `on-failure`: a clean exit(0) from the server is still an outage, and
+# on-failure would leave the box up with nothing listening.
+Restart=always
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
+
+# Sandboxing. The app runs as `ubuntu`, which is in the sudo group, so code execution in the
+# Next.js process would otherwise mean root on the box. These directives do not fix that - a
+# dedicated service account is the real fix and is owed before any cutover - but they remove the
+# cheapest escalation routes and stop the process writing outside /opt and its own private /tmp.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+# /usr and /etc read-only; /opt stays writable so .next/cache works.
+ProtectSystem=full
+ProtectHome=read-only
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
 
 [Install]
 WantedBy=multi-user.target

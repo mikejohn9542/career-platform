@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { loadProfileContent } from "@/content/load";
 import { createDbClient, migrateDb } from "@/db/client";
-import { seedProfile } from "@/db/repository";
+import { assertSafeToSeed, seedProfile } from "@/db/repository";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -11,9 +11,14 @@ if (!connectionString) {
 
 const client = createDbClient(connectionString);
 
+const force = process.argv.includes("--force");
+
 async function main(): Promise<void> {
   const content = loadProfileContent();
   await migrateDb(client);
+  // Migrations first so the projects table exists to be counted, then refuse to overwrite content
+  // that is already there. See assertSafeToSeed for why this matters.
+  await assertSafeToSeed(client, { force });
   await seedProfile(client, content);
   console.log(`Seeded profile content for ${content.profile.name}.`);
 }

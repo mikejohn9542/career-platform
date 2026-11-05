@@ -24,6 +24,25 @@ function now(): string {
   return new Date().toISOString();
 }
 
+export type SeedGuardOptions = { force?: boolean };
+
+// seedProfile() opens with `tx.delete(profiles)` and rebuilds every table from
+// src/content/profile.ts, so running it against a populated database destroys anything that file
+// does not declare. The live database holds a project the repo does not (`michaeljportfolio-me`),
+// and RDS automated backups are kept for one day, so the blast radius is real. deploy.sh carries a
+// comment warning against this; a comment is not a guard, and this is the guard.
+export async function assertSafeToSeed(client: DbClient, options: SeedGuardOptions = {}): Promise<void> {
+  if (options.force) return;
+  const existing = await client.db.select({ slug: projects.slug }).from(projects);
+  if (existing.length === 0) return;
+  const slugs = existing.map((row) => row.slug).join(", ");
+  throw new Error(
+    `Refusing to seed: the target database already contains ${existing.length} project(s) (${slugs}). ` +
+      `Seeding deletes every row and rebuilds from src/content/profile.ts, which would destroy any ` +
+      `content that exists only in the database. Re-run with --force if that is genuinely what you want.`,
+  );
+}
+
 export async function seedProfile(client: DbClient, content: ProfileContent): Promise<void> {
   const validated = profileContentSchema.parse(content);
   const timestamp = now();

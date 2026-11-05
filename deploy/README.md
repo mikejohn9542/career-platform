@@ -27,15 +27,30 @@ certbot has run, and `nginx -t` fails on a missing certificate. So:
 `/etc/career-platform.env` is created by hand on the instance, root-owned, `chmod 600`:
 
 ```
-DATABASE_URL=postgresql://postgres:<password>@<rds-endpoint>:5432/postgres?sslmode=verify-full&sslrootcert=/etc/rds-ca.pem
+DATABASE_URL="postgresql://postgres:<password>@<rds-endpoint>:5432/postgres?sslmode=verify-full&sslrootcert=/etc/rds-ca.pem"
 DATABASE_CA_CERT_PATH=/etc/rds-ca.pem
 NODE_ENV=production
 PORT=3000
 ```
 
-Both certificate settings point at the same file deliberately. `DATABASE_CA_CERT_PATH` is read by
-`src/db/client.ts` for the Node pool; `sslrootcert` in the URL is read by libpq, which is what
-`psql` and `pg_restore` use during the restore. Neither tool reads the other's setting.
+**Quote `DATABASE_URL`.** systemd's `EnvironmentFile` does not shell-parse, so it is safe unquoted
+there, but anything that reads the file in bash - `deploy.sh`, or a human running `source` - would
+treat the `&` before `sslrootcert` as a background-job operator and silently truncate the value.
+`deploy.sh` extracts with `grep`/`cut` for the same reason.
+
+Both certificate settings point at the same file deliberately, and they are read by different
+software:
+
+- `sslrootcert` in the URL is read by **libpq**, which is what `psql` and `pg_restore` use.
+- `DATABASE_CA_CERT_PATH` is read by **`src/db/client.ts`** for the Node pool.
+
+They are not interchangeable, and the Node side does not simply inherit the URL's setting. `pg`
+applies the parsed connection string *over* the explicit pool config, so a URL carrying `sslmode`
+or `sslrootcert` would otherwise replace the CA the code read and drop `rejectUnauthorized`.
+`poolConfigFrom()` removes the TLS query parameters before handing the string to `pg` whenever
+`DATABASE_CA_CERT_PATH` is set, which makes the code the single authority for the Node pool while
+leaving the URL intact for libpq. With no `DATABASE_CA_CERT_PATH` set, the URL's own settings are
+left alone and are the only TLS instruction.
 
 ## First build vs. later deploys
 
