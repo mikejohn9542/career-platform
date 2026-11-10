@@ -685,3 +685,97 @@ dropped yet. A reboot test that races the reboot proves nothing. Re-done by wait
 reading the new boot id.
 
 Railway still serves production. `main` is untouched. No cutover.
+
+## Section 11 — Cutover (2026-11-09)
+
+**Why now, and not as planned.** The Railway trial ended, so the apex was already broken before this
+session started: `https://michaeljportfolio.me` returned `404` (101 bytes, Railway's "application not
+found") because the apex `CNAME` still pointed at `hg6gwx8k.up.railway.app`. Cutover stopped being a
+section-11 decision and became the repair. There was no "keep Railway serving until the checks pass"
+option left to take — the checks had already passed on 2026-11-05, and Railway was gone.
+
+Pre-flight state, confirmed before touching anything:
+
+| Check | Result |
+| --- | --- |
+| Apex | `404`, resolving to `153.52.255.104` (Railway) |
+| AWS copy | `200`, 55,209 bytes at `aws.michaeljportfolio.me` |
+| EC2 `i-0b9d23ee8a6ea7bb2` | `running`, `t3.micro`, Elastic IP `34.232.68.183` |
+| RDS `career-platform-db` | `available`, `PubliclyAccessible: false`, Single-AZ |
+| `src/middleware.ts` | `PUBLIC_HOST` already matched the apex and `www.` — no code change needed |
+
+**Found and fixed first: port 22 allowed two addresses, not one.** The current operator address and a
+stale `/32` from the 2026-11-05 session. Section 10 recorded "exactly one `/32`", which was no longer
+true. Revoked the stale rule before cutover rather than writing a claim the configuration did not
+support.
+
+### The DNS change
+
+The apex was a `CNAME`, and a `CNAME` cannot hold an IP address, so this was a type change, not an
+edit of the value. Done as a single `PUT` (`cf dns records update`) so the record was never absent:
+
+| Field | Before | After |
+| --- | --- | --- |
+| Type | `CNAME` | `A` |
+| Content | `hg6gwx8k.up.railway.app` | `34.232.68.183` |
+| Proxied | false (DNS only) | false (DNS only) |
+| TTL | auto | auto |
+
+The pre-change record was saved to a file outside the repo first, so reverting to Railway's DNS stays
+a one-command operation. Proxying stayed off, which keeps HTTP-01 renewal working the way section 10
+established. Both `1.1.1.1` and `8.8.8.8` returned the Elastic IP before anything else was attempted.
+
+`www` needed nothing: it is a proxied placeholder `A` record (`192.0.2.1`) with a Cloudflare redirect
+rule in front, so it bounces to the apex and never reaches the origin. That is also why the
+certificate did not need a `www` name.
+
+### The certificate
+
+The probe came first: the `default_server` block on port 80 already serves `/var/www/html` for any
+unmatched host, so the ACME challenge path answered for the apex **before** nginx was touched
+(`http://michaeljportfolio.me/.well-known/acme-challenge/apexprobe` → `200` from the laptop). That
+removed a config edit from the risky window instead of assuming it was needed.
+
+One certificate was issued for both names rather than a second lineage — one renewal to fail, not two:
+
+| Item | Value |
+| --- | --- |
+| Lineage | `michaeljportfolio.me` |
+| Subject | `CN=michaeljportfolio.me` |
+| SANs | `michaeljportfolio.me`, `aws.michaeljportfolio.me` |
+| Issuer | Let's Encrypt (`YE2`) |
+| Valid | 2026-11-10 01:36 UTC → 2027-02-08 01:36 UTC |
+| Method | `certbot certonly --webroot -w /var/www/html` |
+
+`deploy/nginx-aws.conf` in the repo was edited first and then installed on the instance, so the live
+config stays the tracked one; the previous file was backed up to `/root` and `nginx -t` passed before
+the reload. The test subdomain was deliberately kept serving rather than redirected, because it is the
+evidence artifact section 10 points at.
+
+### Verification after cutover
+
+| Check | Result |
+| --- | --- |
+| `http://michaeljportfolio.me/` | `308` → `https://michaeljportfolio.me/` |
+| `https://michaeljportfolio.me/` | `200`, 55,209 bytes |
+| `https://aws.michaeljportfolio.me/` | `200`, 55,209 bytes — identical |
+| `https://www.michaeljportfolio.me/` | `200` after redirect to the apex (was `404`) |
+| Certificate trust | `curl` accepted it with no `-k` |
+| `/api/health` | `200 {"status":"ok","source":"database"}` — reading RDS, not the snapshot fallback |
+| All three projects | present on the apex |
+| `/privacy` | `200`, 24,592 bytes |
+| `/michael-johnson-resume.pdf` | `200`, 91,150 bytes, `application/pdf` |
+| `certbot renew --dry-run` | both lineages simulated successfully; `certbot.timer` active |
+| Services | `career-platform` and `nginx` both `active` |
+
+Identical byte counts on the apex and the test subdomain, plus `source":"database"`, are the same two
+signals section 10 relied on: the apex is serving the same app against the same restored data.
+
+**Leftover:** the old `aws.michaeljportfolio.me`-only certificate lineage still exists and still
+renews. Nothing in `/etc/nginx` references it. Harmless, but it is one more renewal that can fail
+noisily; removable with `certbot delete --cert-name aws.michaeljportfolio.me`.
+
+**Still true after cutover:** Let's Encrypt has no contact address for this account
+(`--register-unsafely-without-email` in section 10), so a broken renewal will not be announced.
+`sudo certbot update_account --email <address>` fixes that, and now that the apex depends on this
+certificate the backstop matters more than it did when only a test subdomain did.
