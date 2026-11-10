@@ -1,59 +1,86 @@
 # Career Platform
 
 A recruiter-facing résumé site for Michael Johnson, live at **https://michaeljportfolio.me**.
-Next.js 15 (App Router, TypeScript) renders the page on each request from a PostgreSQL database,
-hosted on Railway. The design system is recorded in [DESIGN.md](DESIGN.md) and product context in
-[PRODUCT.md](PRODUCT.md).
+Next.js 15 (App Router, TypeScript) renders the page on each request from a PostgreSQL database on
+Amazon RDS, served from an EC2 instance in us-east-1. The design system is recorded in
+[DESIGN.md](DESIGN.md) and product context in [PRODUCT.md](PRODUCT.md).
 
 **Project 1 submission index:** [docs/project-1-submission.md](docs/project-1-submission.md) — it
 links every piece of evidence referenced below.
 
-## How it runs today (Railway)
+## How it runs today (AWS)
 
-Locations, protocols, and ports, including the email and analytics paths.
+Locations, protocols, and ports, including the email and analytics paths. This is the section 12
+architecture diagram.
 
 ```mermaid
 flowchart LR
     V["Visitor's browser"]
     CF["Cloudflare<br/>authoritative DNS, DNS only"]
-    RE["Railway edge<br/>TLS terminates here, TCP/443"]
-    AP["Next.js web service<br/>next start, :8080"]
-    PG["Railway PostgreSQL<br/>TCP/5432, private network"]
     GA["Google Analytics 4<br/>G-4H86T3MD8N"]
     SE["Someone emailing me"]
     ZO["Zoho Mail<br/>mx.zoho.com, SMTP/25"]
     MB["michaelj@michaeljportfolio.me"]
 
+    subgraph AWS["AWS us-east-1 (N. Virginia) - default VPC"]
+        subgraph PUB["Public subnet - security group sg-web"]
+            NG["nginx on EC2 t3.micro<br/>Elastic IP 34.232.68.183<br/>TLS terminates here, :80 and :443"]
+            AP["next-server, user careerplat<br/>127.0.0.1:3000, loopback only"]
+        end
+        subgraph PRIV["Private subnets - security group sg-db"]
+            PG["RDS PostgreSQL 18.6<br/>db.t3.micro, Single-AZ, encrypted<br/>:5432, not publicly accessible"]
+        end
+    end
+
     V -->|"1 DNS lookup, UDP/53"| CF
-    CF -->|"2 CNAME to the Railway host"| V
-    V -->|"3 HTTPS GET, TCP/443"| RE
-    RE -->|"4 plain HTTP + X-Forwarded-Proto: https"| AP
-    AP -->|"5 SQL over TLS"| PG
+    CF -->|"2 A record to 34.232.68.183"| V
+    V -->|"3 HTTPS GET, TCP/443"| NG
+    NG -->|"4 plain HTTP over loopback, X-Forwarded-Proto: https"| AP
+    AP -->|"5 SQL over TLS 1.3, TCP/5432"| PG
     PG -->|"6 rows"| AP
-    AP -->|"7 HTML"| RE
-    RE -->|"8 HTTPS response"| V
+    AP -->|"7 HTML"| NG
+    NG -->|"8 HTTPS response"| V
     V -.->|"9 gtag.js beacon, HTTPS to google-analytics.com"| GA
     SE -->|"a MX lookup, UDP/53"| CF
     SE -->|"b SMTP/25 to the MX host"| ZO
     ZO -->|"c delivered"| MB
 ```
 
-Steps 1-8 are the page request. Step 9 is analytics: it leaves the **browser**, not the server, so
-it does not depend on the host. Steps a-c are mail: the same zone answers the MX lookup, but mail
-never touches the web service.
+Steps 1-8 are the page request. Step 9 is analytics: it leaves the **browser**, not the server, so it
+does not depend on the host. Steps a-c are mail: the same Cloudflare zone answers the MX lookup, but
+mail never touches the web service.
+
+Three boundaries are worth naming, because they are what the diagram is really about:
+
+- **Nothing reaches the app directly.** `next start` is pinned to `127.0.0.1:3000`, so even inside the
+  VPC there is no route to it. nginx is the only way in, and it is the only thing holding a
+  certificate.
+- **Nothing reaches the database from the internet.** The database has no public address, and its
+  security group allows port 5432 from the web instance's *security group* — not from a CIDR range, so
+  there is no address anyone could borrow.
+- **The app cannot change itself.** It runs as `careerplat`, a system account with no login shell that
+  is not in the sudo group, with read-only access to its own code. `ubuntu` owns the files and builds
+  them; the running process can write only `.next/cache`.
 
 | Piece | Where | Notes |
 |---|---|---|
-| DNS | Cloudflare | `michaeljportfolio.me` CNAME → the Railway service domain, **DNS only**; `_railway-verify` TXT proves ownership. `www` is a proxied Cloudflare redirect (301) to the root domain, see below. |
-| Web | Railway project `vivacious-happiness`, service `earnest-clarity`, environment `production` | Deploys every push to `main`. `railway.json` sets build, pre-deploy, start, and healthcheck. |
-| Database | Railway PostgreSQL in the same project | The web service reads `DATABASE_URL = ${{Postgres.DATABASE_URL}}` over Railway's private network. |
-| TLS | Railway | Railway issues and renews the certificate for the root domain; Cloudflare's Universal SSL covers `www`. |
-| Email | Zoho Mail (free plan) | `michaelj@michaeljportfolio.me`. MX, SPF, DKIM, DMARC in the same Cloudflare zone. See [Domain email](#domain-email-zoho). |
+| DNS | Cloudflare | `michaeljportfolio.me` **A** record → Elastic IP `34.232.68.183`, **DNS only** (not proxied), which is what keeps HTTP-01 certificate renewal working. `www` is a proxied placeholder record with a Cloudflare redirect (301) to the root domain. `aws.michaeljportfolio.me` is the test subdomain from the migration and still serves the same app. |
+| Web | EC2 `i-0b9d23ee8a6ea7bb2`, `t3.micro`, Ubuntu, us-east-1 | nginx reverse proxy on :80/:443 → `next start` on loopback :3000 under systemd (`deploy/career-platform.service`), restarted automatically and enabled at boot. 20 GB encrypted gp3, IMDSv2 required, 2 GB swap so a build fits in 1 GB of RAM. |
+| Database | RDS `career-platform-db`, PostgreSQL 18.6, `db.t3.micro`, Single-AZ | Private, encrypted, 20 GB. The app connects with TLS verified against the RDS CA bundle (`DATABASE_CA_CERT_PATH`), confirmed as TLSv1.3 in `pg_stat_ssl`. Automated backups retain **1 day** (free-plan ceiling), so the tested logical dump is the real recovery path. |
+| Firewall | Security groups | `sg-web`: 80 and 443 from anywhere, 22 from one operator `/32` only. `sg-db`: 5432 from `sg-web` only. Nothing else is open. |
+| TLS | Let's Encrypt on the instance | One certificate covers `michaeljportfolio.me` and `aws.michaeljportfolio.me`, issued by `certbot --webroot`, renewed by `certbot.timer`. Renewal is verified by dry run, not assumed. |
+| Deploys | `deploy/deploy.sh` on the instance | Pull, `npm ci`, stop, build, migrate, re-apply service-account ownership, start, wait for health. Never seeds — see [How the migration kept the data](#how-the-migration-kept-the-data). |
+| Email | Zoho Mail (free plan) | `michaelj@michaeljportfolio.me`. MX, SPF, DKIM, DMARC in the same Cloudflare zone, untouched by the move. See [Domain email](#domain-email-zoho). |
 | Analytics | Google Analytics 4 | Tag in `src/app/layout.tsx`. See [Analytics](#analytics-ga4). |
 | Database-failure behaviour | `src/lib/content-service.ts`, `src/app/api/health/route.ts` | The page keeps the profile visible and replaces the project list with "Projects temporarily unavailable"; `/api/health` returns **503**. See [Database failure behaviour](#database-failure-behaviour). |
 
-**Railway trial:** started 2026-10-08, ends about **2026-11-07** (30 days or $5 of usage). The Free plan
-after it allows no custom domain, so the Azure VM is kept as the way back (see Rollback).
+**One instance, no load balancer, one Availability Zone.** A reboot or an instance failure is an
+outage, and the reboot test measured the gap: nginx answers `502` for a few seconds until the app is
+ready. That is the tradeoff accepted in the architecture decision below, not an oversight.
+
+Migration record: [migration-notes.md](migration-notes.md) (sections 1-11, with the evidence),
+[the plan](docs/superpowers/plans/2026-11-03-aws-ec2-rds-migration.md), and
+[Exercise 07 evidence](docs/evidence/ex07.md).
 
 ## Configuration guide
 
@@ -61,10 +88,13 @@ after it allows no custom domain, so the Azure VM is kept as the way back (see R
 
 | Variable | Where | Purpose |
 |---|---|---|
-| `DATABASE_URL` | Railway web service (reference to Postgres) | PostgreSQL connection. Unset locally → render from the snapshot. |
-| `RAILWAY_DATABASE_URL` | Local `.env` only (git-ignored) | Postgres public URL for one-off laptop work. Append `?sslmode=no-verify` so the connection is encrypted. |
+| `DATABASE_URL` | `/etc/career-platform.env` on the EC2 instance (root-owned, `chmod 600`) | PostgreSQL connection to RDS. Unset locally → render from the snapshot. |
+| `DATABASE_CA_CERT_PATH` | Same file, pointing at `/etc/rds-ca.pem` | The RDS CA bundle. The client verifies the server certificate against it, and a file that is empty or not a certificate throws rather than silently falling back to the public root store. |
+| `RAILWAY_DATABASE_URL` | Local `.env` only (git-ignored) | Historical: Railway's public Postgres URL for one-off laptop work. Dead since the cutover. |
 
-Secrets live in Railway variables and the git-ignored `.env`, never in the repo.
+Secrets live in `/etc/career-platform.env` on the instance and the git-ignored `.env` locally, never
+in the repo. systemd reads that file **as root** before dropping to the `careerplat` service
+account, so the account the app runs as never has access to the database password.
 
 ### Commands
 
@@ -73,7 +103,7 @@ Secrets live in Railway variables and the git-ignored `.env`, never in the repo.
 | `npm install` | Install dependencies (Node 22) |
 | `npm run dev` | Local dev server; renders from the snapshot unless `DATABASE_URL` is set |
 | `npm run build` | Generate the snapshot, then `next build` |
-| `npm run start` | `next start` (Railway sets `PORT`; Next listens on `0.0.0.0`) |
+| `npm run start` | `next start`. In production systemd runs `node_modules/.bin/next start --hostname 127.0.0.1` directly, which keeps the listener on loopback |
 | `npm test -- --run` / `npm run lint` / `npx tsc --noEmit` | Tests (integration tests run on PGlite, an in-process Postgres), lint, type-check |
 | `npm run db:migrate` | Apply Drizzle migrations from `drizzle/` |
 | `npx drizzle-kit generate --name <change>` | Create a migration after editing `src/db/schema.ts` |
@@ -82,32 +112,46 @@ Secrets live in Railway variables and the git-ignored `.env`, never in the repo.
 
 ### Updating the site
 
-Push to `main`. Railway builds, runs `npm run db:migrate` as the **pre-deploy** step (the seed never
-runs on deploy), health-checks `/`, and only then switches traffic. The deployment in Railway's
-history carries the commit SHA. On Azure the same update was SSH, pull, build, and a service restart.
+SSH to the instance and run `bash /opt/career-platform/deploy/deploy.sh`. It pulls, installs with
+`npm ci`, stops the service, builds, applies migrations, re-applies the service-account ownership,
+starts, and then waits for `/api/health` before reporting success. It never seeds.
+
+**Pushing to `main` no longer deploys anything** — Railway was the thing watching the branch. Two
+consequences worth knowing before you publish: the script stops the app for the build, so the site
+returns `502` for roughly two minutes, and a reboot or instance failure is a visible outage because
+there is one instance and no load balancer.
 
 Content edits are database writes now: the live site shows what is in PostgreSQL, not what is in
 `profile.ts` (for example, "SQL" was added to Analytics directly in the database on 2026-10-09).
 
-### Railway and Cloudflare CLIs
+### AWS and Cloudflare CLIs
 
-`railway` (npm `@railway/cli`) is linked to project `vivacious-happiness` / service `earnest-clarity`:
-`railway deployment list`, `railway logs --deployment <id>`, `railway domain list`,
-`railway run --service Postgres -- node <script>` (passes `DATABASE_PUBLIC_URL` without printing it).
-Avoid bare `railway domain`, which creates a domain. `cf` (npm `cf`, Cloudflare's CLI):
-`cf dns records list --zone michaeljportfolio.me`.
+`aws` is used with `--profile isba-4775 --region us-east-1`. The session expires often; `aws login`
+re-authenticates through a browser. **Sign in as `isba-student`, not the account root** — if the
+browser happens to be signed in as root, the CLI offers to repoint the profile at the root ARN, and
+that offer should be declined.
 
-Railway reports that `railway.json` ("config as code") is deprecated in favor of
-`.railway/railway.ts`; existing files keep working until 2026-12-01. **To do:** run
-`railway config migrate` before then.
+`cf` (npm `cf`, Cloudflare's CLI) manages DNS: `cf dns records list --zone michaeljportfolio.me`,
+and `cf dns records update <id> --body '<json>'` for a change. `--dry-run` prints the request
+without sending it, which is worth using on anything touching the apex.
 
-### Behind Railway's proxy
+`railway` (npm `@railway/cli`) is no longer used. `railway.json` is vestigial — it configured
+Railway's build and healthcheck and now controls nothing. It is kept only so the Railway history
+above stays readable.
 
-Railway terminates TLS and forwards plain HTTP with `X-Forwarded-Proto`. Next.js trusts that header
-by default (no Uvicorn-style `--proxy-headers` switch exists or is needed), so absolute URLs and
-assets come out as `https://`. `src/middleware.ts` also 308-redirects `http://` to `https://` on the
-public hosts (Railway's edge already 301s first) and never redirects Railway's healthcheck host or
-`localhost`.
+### Behind nginx
+
+nginx terminates TLS on the instance and forwards plain HTTP **over loopback** with
+`X-Forwarded-Proto`, `Host`, and `X-Forwarded-Host`. Next.js trusts those headers by default (no
+Uvicorn-style `--proxy-headers` switch exists or is needed), so absolute URLs and assets come out as
+`https://`. Without `X-Forwarded-Proto` every request would look like plain HTTP to the app and
+`src/middleware.ts` would redirect forever.
+
+`src/middleware.ts` 308-redirects `http://` to `https://` for `michaeljportfolio.me`, `www.`, `aws.`
+and `*.up.railway.app` (the last now vestigial), and never redirects `localhost`. nginx's port-80
+block does the same redirect, so the app's rule is a backstop — except for
+`/.well-known/acme-challenge/`, which nginx serves from `/var/www/html` without redirecting, because
+certificate renewal depends on it.
 
 ## Domain email (Zoho)
 
@@ -221,38 +265,36 @@ Details, commands, and results: [the migration plan](docs/superpowers/plans/2026
 
 ## Rollback
 
-Reverting **code** is a push: revert the commit on `main` and Railway redeploys. The deployment
-history in Railway carries the commit SHA, so the version to go back to is the previous `SUCCESS`
-deployment's SHA.
+Reverting **code** is no longer a push. Revert the commit, push the branch, then on the instance run
+`bash /opt/career-platform/deploy/deploy.sh`, which pulls the reverted code, rebuilds, and restarts.
+Nothing deploys on its own, so a bad commit sitting in GitHub is not yet a bad site.
 
-Reverting **data** is not a push. Railway takes writes (the "SQL" skill exists only there), so any
-move away from it has to carry those rows.
+Reverting **data** is a restore, not a revert. The live database takes writes that exist nowhere in
+the repo — the third project, `michaeljportfolio-me`, and the "SQL" skill item are database-only — so
+recovery means `pg_restore` of a dump, and `npm run db:seed` must never be used for it. The guard in
+`src/db/repository.ts` refuses to seed a database that already holds projects, and that guard is the
+protection; the comments are only reminders.
 
-**The Azure fallback is gone.** The VM was deleted on 2026-10-22, so steps 3 and 4 below no longer
-describe a server that exists. Going back to Azure now means rebuilding it from
-[the Azure migration plan](docs/superpowers/plans/2026-09-24-azure-vm-migration.md) and
-[operating the VM](docs/superpowers/plans/2026-10-01-operate-the-vm.md) — both record every command,
-unit file, and nginx block — then restoring
-`data/backups/career-platform-20261008T2154Z.sqlite` and following the steps below. Budget hours,
-not minutes. The surviving VNET, public IP, and NSG in `rg-career-platform` would be reused.
+**There is no live fallback host.** The Azure VM was deleted on 2026-10-22, and the Railway trial
+ended around 2026-11-07, so neither can take traffic back. What exists instead:
 
-The procedure, for whichever target the VM is rebuilt as:
-
-1. Pause content changes and compare both databases (the comparison in the plan is the template).
-2. Copy any Railway-only rows into the SQLite database.
-3. In Cloudflare, replace the root CNAME with an A record to the VM's address (DNS only) and point
-   `www` back the same way.
-4. Issue a fresh certificate once DNS points back:
-   `sudo certbot --nginx -d michaeljportfolio.me -d www.michaeljportfolio.me`. The VM's old
-   certificate (valid to 2027-01-06) went with the VM.
+| Failure | The way back | Realistic time |
+|---|---|---|
+| Bad deploy | Revert the commit and re-run `deploy.sh` | Minutes |
+| Bad data | `pg_restore` the latest dump from `OneDrive\career-platform-backups` into RDS | Minutes; the restore itself measured 1.03 s |
+| Instance lost | Re-provision from [the AWS plan](docs/superpowers/plans/2026-11-03-aws-ec2-rds-migration.md), which records every command, then re-point the apex A record | ~30 minutes, the stated RTO |
+| Database lost | Restore from the dump into a new RDS instance (automated backups retain only **1 day** on this plan) | ~30 minutes, dominated by provisioning |
+| DNS wrong | The pre-cutover record is written down in [migration-notes.md](migration-notes.md) section 11: the apex was a `CNAME` to `hg6gwx8k.up.railway.app` | Minutes, but it points at a dead service |
 
 A **schema** change needs the same care as data: Drizzle migrations only move forward, so rolling
 back a migration means writing the reverse migration and applying it with `npm run db:migrate`
-before redeploying the older code.
+before deploying the older code.
 
-The VM (`vm-career-platform`, `rg-career-platform`) stays running until the instructor says it can
-stop. Backup: `~/backups/career-platform-20261008T2154Z.sqlite` on the VM and
-`data/backups/` (git-ignored) on the laptop.
+Rebuilding Azure instead would mean following
+[the Azure migration plan](docs/superpowers/plans/2026-09-24-azure-vm-migration.md) and
+[operating the VM](docs/superpowers/plans/2026-10-01-operate-the-vm.md) from scratch and restoring
+`data/backups/career-platform-20261008T2154Z.sqlite`, which is now two engines and one schema behind.
+Budget hours, not minutes, and treat it as a last resort rather than a rollback.
 
 ## Decisions
 
@@ -407,14 +449,22 @@ What was observed, and what was not:
 
 | Service | What it costs | Expires | Cleanup plan |
 |---|---|---|---|
+| AWS EC2 `i-0b9d23ee8a6ea7bb2` (`t3.micro`, 20 GB gp3, Elastic IP), us-east-1 | ~$7.59 instance + ~$1.60 storage + ~$3.65 IPv4 ≈ **$12.84/month** | $100 account credit | A public IPv4 address bills while attached **and** while idle, so release the Elastic IP if the instance is ever stopped to save money. Otherwise terminate the instance when the site retires. |
+| AWS RDS `career-platform-db` (`db.t3.micro`, PostgreSQL 18.6, Single-AZ, 20 GB gp3) | ~$13.14 instance + ~$2.30 storage ≈ **$15.44/month** | Same credit | Take a final snapshot, then delete. Automated backups retain 1 day and cost nothing at this size (the database is 8.6 MB). |
 | Azure VM `vm-career-platform` (`Standard_B2ats_v2`) | Azure for Students credit | — | **Deleted 2026-10-22.** No longer billing. |
 | Azure VNET, public IP (Standard, static), and NSG in `rg-career-platform` | Billed from the same credit; a static public IP bills even with no VM attached | — | **Still present.** Deleting `rg-career-platform` removes all three. Do that once the instructor confirms the VM is no longer needed, since the IP accrues cost while it is reserved. |
-| Railway (web service and PostgreSQL) | Trial: $5 of usage or 30 days | Started 2026-10-08, ends about **2026-11-07** | Before it ends, either start a paid plan (the Free plan allows no custom domain) or roll back to Azure using [Rollback](#rollback). |
-| Railway Postgres TCP proxy | Included | — | **Open:** remove it now that the laptop database work is finished. |
+| Railway (web service and PostgreSQL) | Trial: $5 of usage or 30 days | Started 2026-10-08, **ended about 2026-11-07** | **Resolved by expiry, not by plan.** The trial lapsed while the apex still pointed at it, so the site served Railway's `404` until the cutover on 2026-11-09. Nothing to cancel; revoke the Railway SSH key and delete the project when convenient. |
+| Railway Postgres TCP proxy | Included | — | Moot: the project is no longer in use. The 2026-11-03 backup used `railway connect --tunnel-only`, which never created a public proxy. |
 | Cloudflare DNS | Free plan | — | Keep: it holds both the web and the mail records. |
 | `michaeljportfolio.me` at Namecheap | Annual registration | The renewal date is in the Namecheap account and is **not recorded here** | Keep, or let it lapse after the course. |
 | Zoho Mail | Free plan, one domain mailbox | — | Keep. Removing it means deleting the MX, SPF, DKIM, and DMARC records too. |
 | Google Analytics 4 | Free | — | Keep, or delete the property and remove the tag from `src/app/layout.tsx`. |
+
+**Running total on AWS: about $28/month**, against $100 of credits — roughly three and a half
+months. The estimate's method, and which lines were verified live rather than recalled, is in
+[migration-notes.md](migration-notes.md) section 6. What the account owner's billing page actually
+shows is in [Exercise 07 evidence](docs/evidence/ex07.md); the `isba-student` user cannot read
+billing or credits.
 
 ## Third-party security incident (October 2026)
 
@@ -550,6 +600,59 @@ Known gaps, stated rather than hidden:
    Cloudflare redirect instead — see failure B above.
 7. **Why did `railway run -- node -e '<script>'` print nothing?** On Windows, `railway.exe` passed
    only the first line of the multi-line script. Put the script in a file and run `node <file>`.
+
+## History: Railway (Oct–Nov 2026)
+
+The site ran on Railway from 2026-10-08 until the cutover to AWS on 2026-11-09: a managed Next.js
+service and a managed PostgreSQL database in one project, with Railway terminating TLS at its edge
+and deploying on every push to `main`.
+
+
+```mermaid
+flowchart LR
+    V["Visitor's browser"]
+    CF["Cloudflare<br/>authoritative DNS, DNS only"]
+    RE["Railway edge<br/>TLS terminates here, TCP/443"]
+    AP["Next.js web service<br/>next start, :8080"]
+    PG["Railway PostgreSQL<br/>TCP/5432, private network"]
+    GA["Google Analytics 4<br/>G-4H86T3MD8N"]
+    SE["Someone emailing me"]
+    ZO["Zoho Mail<br/>mx.zoho.com, SMTP/25"]
+    MB["michaelj@michaeljportfolio.me"]
+
+    V -->|"1 DNS lookup, UDP/53"| CF
+    CF -->|"2 CNAME to the Railway host"| V
+    V -->|"3 HTTPS GET, TCP/443"| RE
+    RE -->|"4 plain HTTP + X-Forwarded-Proto: https"| AP
+    AP -->|"5 SQL over TLS"| PG
+    PG -->|"6 rows"| AP
+    AP -->|"7 HTML"| RE
+    RE -->|"8 HTTPS response"| V
+    V -.->|"9 gtag.js beacon, HTTPS to google-analytics.com"| GA
+    SE -->|"a MX lookup, UDP/53"| CF
+    SE -->|"b SMTP/25 to the MX host"| ZO
+    ZO -->|"c delivered"| MB
+```
+
+Steps 1-8 are the page request. Step 9 is analytics: it leaves the **browser**, not the server, so
+it does not depend on the host. Steps a-c are mail: the same zone answers the MX lookup, but mail
+never touches the web service.
+
+| Piece | Where | Notes |
+|---|---|---|
+| DNS | Cloudflare | `michaeljportfolio.me` CNAME → the Railway service domain, **DNS only**; `_railway-verify` TXT proves ownership. `www` is a proxied Cloudflare redirect (301) to the root domain, see below. |
+| Web | Railway project `vivacious-happiness`, service `earnest-clarity`, environment `production` | Deploys every push to `main`. `railway.json` sets build, pre-deploy, start, and healthcheck. |
+| Database | Railway PostgreSQL in the same project | The web service reads `DATABASE_URL = ${{Postgres.DATABASE_URL}}` over Railway's private network. |
+| TLS | Railway | Railway issues and renews the certificate for the root domain; Cloudflare's Universal SSL covers `www`. |
+| Email | Zoho Mail (free plan) | `michaelj@michaeljportfolio.me`. MX, SPF, DKIM, DMARC in the same Cloudflare zone. See [Domain email](#domain-email-zoho). |
+| Analytics | Google Analytics 4 | Tag in `src/app/layout.tsx`. See [Analytics](#analytics-ga4). |
+| Database-failure behaviour | `src/lib/content-service.ts`, `src/app/api/health/route.ts` | The page keeps the profile visible and replaces the project list with "Projects temporarily unavailable"; `/api/health` returns **503**. See [Database failure behaviour](#database-failure-behaviour). |
+
+**How it ended:** the 30-day trial expired around 2026-11-07, and the Free plan allows no custom
+domain, so the apex served Railway's "application not found" `404` until DNS moved to AWS. Nothing
+depended on Railway still being reachable at that point: the database had been exported and the
+restore tested on 2026-11-03, before anything moved (see
+[migration-notes.md](migration-notes.md), section 2).
 
 ## History: Azure VM (Sept–Oct 2026)
 
