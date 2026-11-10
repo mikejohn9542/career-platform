@@ -6,16 +6,30 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=ubuntu
+# A dedicated system account: no login shell, no home directory, member of no group but its own,
+# and NOT in sudo. `ubuntu` still owns /opt/career-platform so deploy.sh can build there, but the
+# running app only has group read+execute on the code and cannot modify it. The one writable path
+# is .next/cache, which careerplat owns outright (Next.js writes its image cache there).
+# Before this, the app ran as `ubuntu`, so code execution in Next.js meant root on the box.
+User=careerplat
+Group=careerplat
 WorkingDirectory=/opt/career-platform
 # Holds DATABASE_URL, DATABASE_CA_CERT_PATH, NODE_ENV and PORT.
 # Root-owned, chmod 600: it is the only place the database password exists on this host.
+# systemd reads this as root before dropping to careerplat, so the account never needs access.
 EnvironmentFile=/etc/career-platform.env
+# `next` directly rather than `npm run start`: npm wants a writable HOME for its cache, which a
+# no-home service account does not have, and it adds a process that does nothing but exec next.
+# package.json's "start" is exactly `next start`, so this runs the same server.
 # --hostname pins the listener to loopback. `next start` defaults to 0.0.0.0 and ignores the
 # HOSTNAME environment variable (that is standalone-mode only), so without this flag the app
 # listens on every interface and is reachable from inside the VPC. The security group already
 # blocks 3000 from the internet; this closes it at the process as well.
-ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1
+ExecStart=/opt/career-platform/node_modules/.bin/next start --hostname 127.0.0.1
+# next looks for a writable HOME for telemetry config. PrivateTmp gives this unit its own /tmp,
+# so this is a private scratch directory, not the real one.
+Environment=HOME=/tmp
+Environment=NEXT_TELEMETRY_DISABLED=1
 # Railway gave this for free via restartPolicyType=ON_FAILURE. On EC2 nothing restarts the app
 # unless it is declared here, and section 10's reboot test is what catches a missing unit.
 # `always` rather than `on-failure`: a clean exit(0) from the server is still an outage, and
@@ -25,10 +39,9 @@ RestartSec=5
 StandardOutput=journal
 StandardError=journal
 
-# Sandboxing. The app runs as `ubuntu`, which is in the sudo group, so code execution in the
-# Next.js process would otherwise mean root on the box. These directives do not fix that - a
-# dedicated service account is the real fix and is owed before any cutover - but they remove the
-# cheapest escalation routes and stop the process writing outside /opt and its own private /tmp.
+# Sandboxing. These were added while the app still ran as `ubuntu`, to remove the cheapest
+# escalation routes. The dedicated account above is the actual fix; these stay because defence
+# does not get cheaper by being redundant.
 NoNewPrivileges=yes
 PrivateTmp=yes
 PrivateDevices=yes

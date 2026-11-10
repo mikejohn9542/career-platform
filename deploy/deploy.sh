@@ -96,6 +96,17 @@ npm run build
 echo "==> applying migrations (never seeding)"
 npm run db:migrate
 
+# npm ci and next build create files owned by `ubuntu` with group `ubuntu`, so without this the
+# careerplat service account loses read access to the new code and the app fails to start after
+# every deploy. Re-apply the split that the unit depends on:
+#   - group careerplat, read+execute, so the app can read the code it runs
+#   - no group write anywhere, so the app cannot modify its own code or node_modules
+#   - .next/cache owned by careerplat, the one path Next.js writes to at runtime
+echo "==> handing the build to the service account"
+sudo chgrp -R careerplat .
+sudo chmod -R g-w,g+rX .
+sudo chown -R careerplat:careerplat .next/cache
+
 echo "==> starting $SERVICE"
 sudo systemctl start "$SERVICE"
 systemctl is-active "$SERVICE"
